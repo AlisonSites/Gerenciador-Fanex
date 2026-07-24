@@ -1,0 +1,12 @@
+.fx-pill:disabled {
+  cursor: default;
+}
+
+.fx-permission-note {
+  background: var(--fx-bg);
+  border: 1px dashed var(--fx-line);
+  border-radius: var(--fx-radius-sm);
+  padding: 12px 14px;
+  font-size: 13px;
+  color: var(--fx-muted);
+}

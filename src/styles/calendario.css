@@ -1,0 +1,246 @@
+.fx-calendario-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.fx-calendario-toolbar h3 {
+  margin: 0;
+  font-size: 17px;
+  color: var(--fx-navy);
+  min-width: 190px;
+}
+
+.fx-calendario-legenda {
+  display: flex;
+  gap: 16px;
+  margin-left: auto;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--fx-muted);
+}
+
+.fx-calendario-legenda span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.fx-calendario-legenda i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.fx-calendario-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+}
+
+.fx-calendario-cabecalho {
+  margin-bottom: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--fx-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  text-align: center;
+}
+
+.fx-calendario-dia {
+  aspect-ratio: 1 / 0.85;
+  border: 1.5px solid var(--fx-line);
+  border-radius: var(--fx-radius-sm);
+  background: var(--fx-white);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 8px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, transform 0.1s ease;
+  font-family: var(--fx-font-body);
+}
+
+.fx-calendario-dia:hover {
+  border-color: var(--fx-orange);
+  transform: translateY(-1px);
+}
+
+.fx-calendario-dia--vazio {
+  border: none;
+  background: transparent;
+  cursor: default;
+}
+
+.fx-calendario-dia--vazio:hover {
+  transform: none;
+}
+
+.fx-calendario-dia.is-hoje {
+  border-color: var(--fx-navy);
+  background: #f1f2fa;
+}
+
+.fx-calendario-dia-numero {
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--fx-ink);
+  background-color: #000045;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  color: #fff;
+}
+
+.fx-calendario-dia-badges {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.fx-calendario-badge {
+  color: #fff;
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 10px;
+  border-radius: 10px;
+  width: 150px;
+}
+
+.fx-calendario-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.fx-calendario-tab {
+  border: 1.5px solid var(--fx-line);
+  background: var(--fx-white);
+  border-radius: 20px;
+  padding: 6px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fx-muted);
+  cursor: pointer;
+}
+
+.fx-calendario-tab.is-active {
+  background: var(--fx-navy);
+  border-color: var(--fx-navy);
+  color: #fff;
+}
+
+.fx-calendario-form-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+.fx-calendario-form-grid>label:first-child {
+  grid-column: 1 / -1;
+}
+
+@media (min-width: 560px) {
+  .fx-calendario-form-grid {
+    grid-template-columns: 1fr 1fr auto;
+    align-items: end;
+  }
+
+  .fx-calendario-form-grid>label:first-child {
+    grid-column: 1 / -1;
+  }
+}
+
+.fx-calendario-secao-titulo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--fx-navy);
+  margin: 0 0 10px;
+}
+
+.fx-calendario-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.fx-quantidade-stepper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fx-quantidade-btn {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  border-radius: 8px;
+  border: 1px solid var(--fx-line);
+  background: #fff;
+  color: var(--fx-navy);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.fx-quantidade-btn:hover:not(:disabled) {
+  background: var(--fx-bg);
+  border-color: var(--fx-navy);
+}
+
+.fx-quantidade-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.fx-quantidade-input {
+  width: 56px;
+  height: 34px;
+  text-align: center;
+  border-radius: 8px;
+  border: 1px solid var(--fx-line);
+  font-size: 14px;
+  -moz-appearance: textfield;
+}
+
+.fx-quantidade-input::-webkit-outer-spin-button,
+.fx-quantidade-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+@media (max-width: 720px) {
+  .fx-calendario-grid {
+    grid-template-columns: repeat(7, minmax(34px, 1fr));
+    gap: 4px;
+  }
+
+  .fx-calendario-dia {
+    padding: 4px;
+  }
+
+  .fx-calendario-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .info-ct-calendario{
+    display: none;
+  }
+  .fx-calendario-badge{
+    margin-top: 2px;
+    width: 30px;
+    height: 30px;
+  }
+}
