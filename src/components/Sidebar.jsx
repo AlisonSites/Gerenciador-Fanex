@@ -5,7 +5,7 @@ import Logo from '../assets/logo-branco.png'
 const NAV = [
   { to: '/dashboard', label: 'Dashboard', perm: 'dashboard', icon: 'grid' },
   { to: '/tarefas', label: 'Quadro de Tarefas', perm: 'criar_tarefas', icon: 'board' },
-  { to: '/calendario', label: 'Calendário de Marketing', perm: 'calendario_marketing', icon: 'calendar' },
+  { to: '/calendario/marketing', label: 'Calendário de Marketing', perm: 'calendario_marketing', icon: 'calendar' },
   { to: '/calendario/postagem', label: 'Calendário de Postagem', perm: 'calendario_postagem', icon: 'calendar-chart' },
   { section: 'Pessoas' },
   { to: '/usuarios/criar', label: 'Criar Usuário', perm: 'criar_usuarios', icon: 'user-plus' },

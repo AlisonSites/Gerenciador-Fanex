@@ -83,6 +83,7 @@
 .fx-calendario-dia.is-hoje {
   border-color: var(--fx-navy);
   background: #f1f2fa;
+  box-shadow: 1px 1px 5px #000045;
 }
 
 .fx-calendario-dia-numero {
@@ -107,9 +108,17 @@
   color: #fff;
   font-size: 10.5px;
   font-weight: 700;
-  padding: 10px;
-  border-radius: 10px;
-  width: 150px;
+  
+  /* Mudança principal: tirar o tamanho fixo e o padding gigante */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: auto;       /* Deixa o tamanho se ajustar ao conteúdo */
+  min-width: 20px;   /* Tamanho mínimo para caber o número */
+  height: 50px;      /* Altura fixa pequena */
+  padding: 0 10px;    /* Padding pequeno nas laterais */
+  border-radius: 20px; /* Borda bem arredondada */
+  gap: 10px;
 }
 
 .fx-calendario-tabs {
@@ -220,28 +229,47 @@
   -webkit-appearance: none;
   margin: 0;
 }
-
 @media (max-width: 720px) {
   .fx-calendario-grid {
-    grid-template-columns: repeat(7, minmax(34px, 1fr));
+    /* Aumenta um pouco o tamanho mínimo para caber o conteúdo */
+    grid-template-columns: repeat(7, minmax(40px, 1fr)); 
     gap: 4px;
   }
 
   .fx-calendario-dia {
-    padding: 4px;
+    padding: 4px 2px; /* Menos padding para sobrar espaço */
+    aspect-ratio: 1 / 1; /* Deixa o quadrado perfeitamente redondo/quadrado */
+    min-height: 44px; /* Altura mínima confortável para clique no celular */
+    align-items: center; /* Centraliza os itens dentro do quadradinho */
+    justify-content: center;
+  }
+
+  .fx-calendario-dia-numero {
+    font-size: 12px; /* Diminui o número do dia */
+    width: 16px;
+    height: 16px;
+    line-height: 16px; /* Centraliza o número dentro da bolinha */
+  }
+
+  .fx-calendario-dia-badges {
+    /* Garante que os badges fiquem alinhados no centro */
+    justify-content: center;
   }
 
   .fx-calendario-form-grid {
     grid-template-columns: 1fr;
   }
 
-  .info-ct-calendario{
+  .info-ct-calendario {
     display: none;
   }
-  .fx-calendario-badge{
-    margin-top: 2px;
-    width: 30px;
-    height: 30px;
+
+  /* Remove a altura fixa antiga e deixa o badge fluido */
+  .fx-calendario-badge {
+    height: 16px;
+    min-width: 16px;
+    font-size: 9px; /* Fonte menor ainda para caber direitinho */
+    padding: 0 4px;
   }
 }
 

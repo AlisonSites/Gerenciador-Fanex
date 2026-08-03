@@ -83,13 +83,13 @@ function SeletorDeGrupos({ podeGerenciarTudo, usuario, unidadeAtual, onAbrirGrup
       let mapaMembros = {}
       if (idsGrupos.length) {
         const { data: tarefasData } = await supabase.from('tarefas').select('grupo_id').in('grupo_id', idsGrupos)
-        ;(tarefasData || []).forEach((t) => {
-          mapaTarefas[t.grupo_id] = (mapaTarefas[t.grupo_id] || 0) + 1
-        })
+          ; (tarefasData || []).forEach((t) => {
+            mapaTarefas[t.grupo_id] = (mapaTarefas[t.grupo_id] || 0) + 1
+          })
         const { data: membrosData } = await supabase.from('grupo_membros').select('grupo_id').in('grupo_id', idsGrupos)
-        ;(membrosData || []).forEach((m) => {
-          mapaMembros[m.grupo_id] = (mapaMembros[m.grupo_id] || 0) + 1
-        })
+          ; (membrosData || []).forEach((m) => {
+            mapaMembros[m.grupo_id] = (mapaMembros[m.grupo_id] || 0) + 1
+          })
       }
 
       if (!ativo) return
@@ -224,7 +224,17 @@ function QuadroDoGrupo({ grupoId, podeGerenciarTudo, podeVerTudo, podeExcluirTar
   const colunas = useMemo(() => {
     return statusList.map((s) => ({
       ...s,
-      tarefas: tarefas.filter((t) => t.status_id === s.id),
+      tarefas: tarefas
+        .filter((t) => t.status_id === s.id) // Filtra pela coluna
+        .sort((a, b) => {
+          // Se não tiver data de vencimento, coloca no final (ou começo, como preferir)
+          if (!a.data_vencimento) return 1;
+          if (!b.data_vencimento) return -1;
+
+          const dateA = new Date(a.data_vencimento);
+          const dateB = new Date(b.data_vencimento);
+          return dateA - dateB; // Mais recente no topo
+        })
     }))
   }, [statusList, tarefas])
 
@@ -306,8 +316,10 @@ function QuadroDoGrupo({ grupoId, podeGerenciarTudo, podeVerTudo, podeExcluirTar
               onDrop={() => handleDrop(col.id)}
             >
               <div className="fx-column-head">
-                <span className="fx-column-dot" style={{ background: col.cor }} />
-                <span className="fx-column-title">{col.nome}</span>
+                <div className="fx-status">
+                  <span className="fx-column-dot" style={{ background: col.cor }} />
+                  <span className="fx-column-title">{col.nome}</span>
+                </div>
                 <span className="fx-column-count">{col.tarefas.length}</span>
                 {podeGerenciarColunas && (
                   <div className="fx-column-actions">

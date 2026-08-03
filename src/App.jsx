@@ -41,7 +41,7 @@ export default function App() {
           <Route path="/relatorios/pessoal" element={<ProtectedRoute permissao="relatorio_pessoal"><RelatorioPessoal /></ProtectedRoute>} />
           <Route path="/relatorios/calendario" element={<ProtectedRoute permissao="relatorio_calendario"><RelatorioCalendario /></ProtectedRoute>} />
 
-          <Route path="/calendario" element={<ProtectedRoute permissao="calendario_marketing"><CalendarioMarketing /></ProtectedRoute>} />
+          <Route path="/calendario/marketing" element={<ProtectedRoute permissao="calendario_marketing"><CalendarioMarketing /></ProtectedRoute>} />
           <Route path="/calendario/postagem" element={<ProtectedRoute permissao="calendario_postagem"><CalendarioPostagem /></ProtectedRoute>} />
 
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
