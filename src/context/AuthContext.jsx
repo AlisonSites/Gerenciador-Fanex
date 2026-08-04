@@ -123,9 +123,14 @@ export function AuthProvider({ children }) {
     localStorage.removeItem(CHAVE_UNIDADE_ATUAL)
   }
 
+  // Aceita uma chave única ('gerenciar_usuarios') ou uma lista de chaves
+  // (['ver_usuarios', 'gerenciar_usuarios']), liberando o acesso se o perfil
+  // tiver QUALQUER uma delas. Isso permite, por exemplo, dar acesso de
+  // "somente ver" a uma tela para quem tem só a permissão `ver_*`.
   const temPermissao = (chave) => {
     if (!perfil) return false
     if (perfil.nome === 'Administrador') return true
+    if (Array.isArray(chave)) return chave.some((c) => !!perfil.permissoes?.[c])
     return !!perfil.permissoes?.[chave]
   }
 

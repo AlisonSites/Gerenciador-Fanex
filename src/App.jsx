@@ -16,6 +16,7 @@ import RelatorioCalendario from './pages/relatorios/RelatorioCalendario'
 import CalendarioMarketing from './pages/calendario/CalendarioMarketing'
 import CalendarioPostagem from './pages/calendario/CalendarioPostagem'
 import GerenciarUnidades from './pages/unidades/GerenciarUnidades'
+import LogErros from './pages/logs/LogErros'
 
 export default function App() {
   return (
@@ -28,21 +29,23 @@ export default function App() {
           <Route path="/tarefas" element={<ProtectedRoute permissao="criar_tarefas"><Tarefas /></ProtectedRoute>} />
 
           <Route path="/usuarios/criar" element={<ProtectedRoute permissao="criar_usuarios"><CriarUsuario /></ProtectedRoute>} />
-          <Route path="/usuarios/gerenciar" element={<ProtectedRoute permissao="gerenciar_usuarios" allowRoles={['Coordenador']}><GerenciarUsuarios /></ProtectedRoute>} />
+          <Route path="/usuarios/gerenciar" element={<ProtectedRoute permissao={['ver_usuarios', 'gerenciar_usuarios']} allowRoles={['Coordenador']}><GerenciarUsuarios /></ProtectedRoute>} />
 
           <Route path="/perfis/criar" element={<ProtectedRoute permissao="criar_perfis"><CriarPerfil /></ProtectedRoute>} />
-          <Route path="/perfis/gerenciar" element={<ProtectedRoute permissao="gerenciar_perfis"><GerenciarPerfis /></ProtectedRoute>} />
+          <Route path="/perfis/gerenciar" element={<ProtectedRoute permissao={['ver_perfis', 'gerenciar_perfis']}><GerenciarPerfis /></ProtectedRoute>} />
 
-          <Route path="/unidades" element={<ProtectedRoute permissao="gerenciar_unidades"><GerenciarUnidades /></ProtectedRoute>} />
+          <Route path="/unidades" element={<ProtectedRoute permissao={['ver_unidades', 'gerenciar_unidades']}><GerenciarUnidades /></ProtectedRoute>} />
 
           <Route path="/grupos/criar" element={<ProtectedRoute permissao="criar_grupos"><CriarGrupo /></ProtectedRoute>} />
-          <Route path="/grupos/gerenciar" element={<ProtectedRoute permissao="gerenciar_grupos" allowRoles={['Coordenador']}><GerenciarGrupos /></ProtectedRoute>} />
+          <Route path="/grupos/gerenciar" element={<ProtectedRoute permissao={['ver_grupos', 'gerenciar_grupos']} allowRoles={['Coordenador']}><GerenciarGrupos /></ProtectedRoute>} />
 
           <Route path="/relatorios/pessoal" element={<ProtectedRoute permissao="relatorio_pessoal"><RelatorioPessoal /></ProtectedRoute>} />
           <Route path="/relatorios/calendario" element={<ProtectedRoute permissao="relatorio_calendario"><RelatorioCalendario /></ProtectedRoute>} />
 
           <Route path="/calendario/marketing" element={<ProtectedRoute permissao="calendario_marketing"><CalendarioMarketing /></ProtectedRoute>} />
           <Route path="/calendario/postagem" element={<ProtectedRoute permissao="calendario_postagem"><CalendarioPostagem /></ProtectedRoute>} />
+
+          <Route path="/logs" element={<ProtectedRoute permissao="ver_logs_erros"><LogErros /></ProtectedRoute>} />
 
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />

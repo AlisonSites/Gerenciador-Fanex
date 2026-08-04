@@ -9,17 +9,19 @@ const NAV = [
   { to: '/calendario/postagem', label: 'Calendário de Postagem', perm: 'calendario_postagem', icon: 'calendar-chart' },
   { section: 'Pessoas' },
   { to: '/usuarios/criar', label: 'Criar Usuário', perm: 'criar_usuarios', icon: 'user-plus' },
-  { to: '/usuarios/gerenciar', label: 'Gerenciar Usuários', perm: 'gerenciar_usuarios', icon: 'users', fallbackView: true },
+  { to: '/usuarios/gerenciar', label: 'Gerenciar Usuários', perm: ['ver_usuarios', 'gerenciar_usuarios'], icon: 'users', fallbackView: true },
   { section: 'Setores' },
   { to: '/grupos/criar', label: 'Criar Grupo', perm: 'criar_grupos', icon: 'folder-plus' },
-  { to: '/grupos/gerenciar', label: 'Gerenciar Grupos', perm: 'gerenciar_grupos', icon: 'folder', fallbackView: true },
+  { to: '/grupos/gerenciar', label: 'Gerenciar Grupos', perm: ['ver_grupos', 'gerenciar_grupos'], icon: 'folder', fallbackView: true },
   { section: 'Relatórios' },
   { to: '/relatorios/pessoal', label: 'Relatório por Pessoa', perm: 'relatorio_pessoal', icon: 'chart' },
   { to: '/relatorios/calendario', label: 'Relatório do Calendário', perm: 'relatorio_calendario', icon: 'calendar-chart' },
   { section: 'Acesso' },
   { to: '/perfis/criar', label: 'Criar Perfil', perm: 'criar_perfis', icon: 'shield-plus' },
-  { to: '/perfis/gerenciar', label: 'Gerenciar Perfis', perm: 'gerenciar_perfis', icon: 'shield', fallbackView: true },
-  { to: '/unidades', label: 'Unidades', perm: 'gerenciar_unidades', icon: 'building' },
+  { to: '/perfis/gerenciar', label: 'Gerenciar Perfis', perm: ['ver_perfis', 'gerenciar_perfis'], icon: 'shield', fallbackView: true },
+  { to: '/unidades', label: 'Unidades', perm: ['ver_unidades', 'gerenciar_unidades'], icon: 'building' },
+  { section: 'Sistema' },
+  { to: '/logs', label: 'Log de Erros', perm: 'ver_logs_erros', icon: 'log' },
 ]
 
 const ICONS = {
@@ -35,6 +37,7 @@ const ICONS = {
   calendar: <path d="M8 2v4m8-4v4M3 10h18M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z" />,
   'calendar-chart': <path d="M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2zM8 2v4m8-4v4M8 14v4m4-7v7m4-4v4" />,
   building: <path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6M9 9h.01M9 13h.01M15 9h.01M15 13h.01" />,
+  log: <path d="M4 4h16v16H4V4zm3 5h10M7 12h10M7 15h6M4 4l4 4M4 8l4-4" />,
 }
 
 function Icon({ name }) {

@@ -3,12 +3,15 @@ import { supabase, PERMISSOES } from '../../lib/supabase'
 import { useAuth } from '../../context/AuthContext'
 import Layout from '../../components/Layout'
 import ConfirmModal from '../../components/ConfirmModal'
+import PermissoesSeletor from '../../components/PermissoesSeletor'
 import '../../styles/crud.css'
 
 export default function GerenciarPerfis() {
   // Excluir um perfil de acesso já existente agora exige a permissão
-  // "excluir_perfis", separada de "gerenciar_perfis".
-  const { temPermissao } = useAuth()
+  // "excluir_perfis", separada de "gerenciar_perfis". Quem só tem
+  // "ver_perfis" enxerga a lista e pode abrir os detalhes, mas não edita.
+  const { temPermissao, isAdmin } = useAuth()
+  const podeEditar = temPermissao('gerenciar_perfis')
   const podeExcluir = temPermissao('excluir_perfis')
   const [perfis, setPerfis] = useState([])
   const [editando, setEditando] = useState(null)
@@ -31,6 +34,7 @@ export default function GerenciarPerfis() {
 
   const salvar = async (e) => {
     e.preventDefault()
+    if (!podeEditar) return
     await supabase.from('perfis_acesso').update({ nome: editando.nome, permissoes: editando.permissoes }).eq('id', editando.id)
     setEditando(null)
     carregar()
@@ -51,7 +55,7 @@ export default function GerenciarPerfis() {
       <div className="fx-page-head">
         <div>
           <h1>Perfis de acesso</h1>
-          <p>Ajuste permissões de cada perfil a qualquer momento.</p>
+          <p>{podeEditar ? 'Ajuste permissões de cada perfil a qualquer momento.' : 'Você tem acesso apenas para visualizar os perfis e suas permissões.'}</p>
         </div>
       </div>
 
@@ -72,7 +76,7 @@ export default function GerenciarPerfis() {
                   <td className="fx-mono">{Object.values(p.permissoes || {}).filter(Boolean).length} / {PERMISSOES.length}</td>
                   <td>
                     <div className="fx-table-actions">
-                      <button className="fx-btn fx-btn-ghost fx-btn-sm" onClick={() => abrirEdicao(p)}>Editar permissões</button>
+                      <button className="fx-btn fx-btn-ghost fx-btn-sm" onClick={() => abrirEdicao(p)}>{podeEditar ? 'Editar permissões' : 'Ver permissões'}</button>
                       {podeExcluir && <button className="fx-btn fx-btn-danger fx-btn-sm" onClick={() => setExcluirId(p.id)}>Excluir</button>}
                     </div>
                   </td>
@@ -88,27 +92,30 @@ export default function GerenciarPerfis() {
         <div className="fx-modal-scrim" onClick={() => setEditando(null)}>
           <div className="fx-modal fx-modal-lg" onClick={(e) => e.stopPropagation()}>
             <div className="fx-modal-head">
-              <h3>Editar permissões</h3>
+              <h3>{podeEditar ? 'Editar permissões' : 'Permissões do perfil'}</h3>
               <button className="fx-modal-close" onClick={() => setEditando(null)}>×</button>
             </div>
             <form onSubmit={salvar}>
               <div className="fx-modal-body">
                 <label className="fx-field-group">
                   <span>Nome do perfil</span>
-                  <input required value={editando.nome} onChange={(e) => setEditando({ ...editando, nome: e.target.value })} />
+                  <input
+                    required
+                    value={editando.nome}
+                    disabled={!podeEditar}
+                    onChange={(e) => setEditando({ ...editando, nome: e.target.value })}
+                  />
                 </label>
-                <div className="fx-checkbox-grid">
-                  {PERMISSOES.map((p) => (
-                    <label key={p.key} className="fx-checkbox-item">
-                      <input type="checkbox" checked={!!editando.permissoes[p.key]} onChange={() => alternarPermissao(p.key)} />
-                      {p.label}
-                    </label>
-                  ))}
-                </div>
+                <PermissoesSeletor
+                  permissoes={editando.permissoes}
+                  onToggle={alternarPermissao}
+                  agrupar={isAdmin}
+                  somenteLeitura={!podeEditar}
+                />
               </div>
               <div className="fx-modal-foot">
-                <button type="button" className="fx-btn fx-btn-ghost" onClick={() => setEditando(null)}>Cancelar</button>
-                <button type="submit" className="fx-btn fx-btn-primary">Salvar alterações</button>
+                <button type="button" className="fx-btn fx-btn-ghost" onClick={() => setEditando(null)}>{podeEditar ? 'Cancelar' : 'Fechar'}</button>
+                {podeEditar && <button type="submit" className="fx-btn fx-btn-primary">Salvar alterações</button>}
               </div>
             </form>
           </div>

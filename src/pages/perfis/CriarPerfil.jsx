@@ -3,6 +3,7 @@ import { supabase, PERMISSOES } from '../../lib/supabase'
 import { useAuth } from '../../context/AuthContext'
 import Layout from '../../components/Layout'
 import ConfirmModal from '../../components/ConfirmModal'
+import PermissoesSeletor from '../../components/PermissoesSeletor'
 import '../../styles/crud.css'
 
 function permissoesVazias() {
@@ -12,7 +13,7 @@ function permissoesVazias() {
 export default function CriarPerfil() {
   // Excluir um perfil de acesso já existente agora exige a permissão
   // "excluir_perfis", separada de "criar_perfis".
-  const { temPermissao } = useAuth()
+  const { temPermissao, isAdmin } = useAuth()
   const podeExcluir = temPermissao('excluir_perfis')
   const [perfis, setPerfis] = useState([])
   const [nome, setNome] = useState('')
@@ -96,14 +97,7 @@ export default function CriarPerfil() {
           </div>
 
           <span style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--fx-navy)', marginBottom: 10 }}>Permissões</span>
-          <div className="fx-checkbox-grid">
-            {PERMISSOES.map((p) => (
-              <label key={p.key} className="fx-checkbox-item">
-                <input type="checkbox" checked={!!permissoes[p.key]} onChange={() => alternarPermissao(p.key)} />
-                {p.label}
-              </label>
-            ))}
-          </div>
+          <PermissoesSeletor permissoes={permissoes} onToggle={alternarPermissao} agrupar={isAdmin} />
 
           <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
             <button className="fx-btn fx-btn-primary" type="submit" disabled={salvando}>
