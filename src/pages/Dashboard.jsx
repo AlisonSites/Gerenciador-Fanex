@@ -108,18 +108,18 @@ export default function Dashboard() {
     .filter((t) => {
       // Verifica se tem data de vencimento
       if (!t.data_vencimento) return false;
-      
-      // Verifica se NÃO está concluída
-      const nomeStatus = statusList.find((s) => s.id === t.status_id)?.nome || '';
-      if (/conclu/i.test(nomeStatus)) return false;
-      
+
+      // Verifica se NÃO está concluída (compara pelo id do status "Concluído",
+      // igual ao cálculo de "pendentes" acima, para não depender só do nome)
+      if (t.status_id === concluido?.id) return false;
+
       // Verifica se a data de vencimento é futura ou hoje
       const hoje = new Date();
       hoje.setHours(0, 0, 0, 0);
-      
+
       const dataVencimento = new Date(t.data_vencimento);
       dataVencimento.setHours(0, 0, 0, 0);
-      
+
       return dataVencimento >= hoje;
     })
     .sort((a, b) => new Date(a.data_vencimento) - new Date(b.data_vencimento))
@@ -130,18 +130,18 @@ export default function Dashboard() {
     .filter((t) => {
       // Verifica se tem data de vencimento
       if (!t.data_vencimento) return false;
-      
-      // Verifica se NÃO está concluída
-      const nomeStatus = statusList.find((s) => s.id === t.status_id)?.nome || '';
-      if (/conclu/i.test(nomeStatus)) return false;
-      
+
+      // Verifica se NÃO está concluída (compara pelo id do status "Concluído",
+      // igual ao cálculo de "pendentes" acima, para não depender só do nome)
+      if (t.status_id === concluido?.id) return false;
+
       // Verifica se a data de vencimento é passada
       const hoje = new Date();
       hoje.setHours(0, 0, 0, 0);
-      
+
       const dataVencimento = new Date(t.data_vencimento);
       dataVencimento.setHours(0, 0, 0, 0);
-      
+
       return dataVencimento < hoje;
     })
     .sort((a, b) => new Date(a.data_vencimento) - new Date(b.data_vencimento))
