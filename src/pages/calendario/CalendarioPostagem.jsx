@@ -232,6 +232,7 @@ export default function CalendarioPostagem() {
 }
 
 function DiaModal({ dia, entradas, usuario, usuarios, unidadeId, isAdmin, podeCriar, onClose, onSalvou, onExcluir, onRegistrado }) {
+  const [aba, setAba] = useState('lista') // 'lista' | 'nova'
   const [tipo, setTipo] = useState(TIPOS[0])
   const [descricao, setDescricao] = useState('')
   const [usuarioId, setUsuarioId] = useState(usuario?.id || '')
@@ -245,6 +246,7 @@ function DiaModal({ dia, entradas, usuario, usuarios, unidadeId, isAdmin, podeCr
     setTipo(e.tipo)
     setDescricao(e.descricao)
     setUsuarioId(e.usuario_id || '')
+    setAba('nova')
   }
 
   const cancelarEdicao = () => {
@@ -279,6 +281,7 @@ function DiaModal({ dia, entradas, usuario, usuarios, unidadeId, isAdmin, podeCr
     setSalvando(false)
     cancelarEdicao()
     onSalvou()
+    setAba('lista')
   }
 
   // Além do próprio dono do registro, quem tem acesso total (admin) também pode editar.
@@ -294,6 +297,25 @@ function DiaModal({ dia, entradas, usuario, usuarios, unidadeId, isAdmin, podeCr
 
         <div className="fx-modal-body">
           {podeCriar && (
+            <div className="fx-tabs" style={{ display: 'flex', gap: 8, marginBottom: 18 }}>
+              <button
+                type="button"
+                className={`fx-btn ${aba === 'lista' ? 'fx-btn-primary' : 'fx-btn-ghost'}`}
+                onClick={() => setAba('lista')}
+              >
+                Ver postagens{entradas.length > 0 ? ` (${entradas.length})` : ''}
+              </button>
+              <button
+                type="button"
+                className={`fx-btn ${aba === 'nova' ? 'fx-btn-primary' : 'fx-btn-ghost'}`}
+                onClick={() => { cancelarEdicao(); setAba('nova') }}
+              >
+                + Nova postagem
+              </button>
+            </div>
+          )}
+
+          {podeCriar && aba === 'nova' && (
             <form onSubmit={salvar} className="fx-calendario-form">
               <div className="fx-calendario-form-grid">
                 <label className="fx-field-group">
@@ -302,10 +324,6 @@ function DiaModal({ dia, entradas, usuario, usuarios, unidadeId, isAdmin, podeCr
                     {TIPOS.map((o) => <option key={o} value={o}>{o}</option>)}
                   </select>
                 </label>
-                <label className="fx-field-group" style={{ gridColumn: 'span 2' }}>
-                  <span>Descrição</span>
-                  <input required value={descricao} onChange={(ev) => setDescricao(ev.target.value)} placeholder="Ex.: Post do lançamento da turma de férias" />
-                </label>
                 <label className="fx-field-group">
                   <span>Responsável</span>
                   <select value={usuarioId} onChange={(ev) => setUsuarioId(ev.target.value)}>
@@ -313,17 +331,42 @@ function DiaModal({ dia, entradas, usuario, usuarios, unidadeId, isAdmin, podeCr
                     {usuarios.map((u) => <option key={u.id} value={u.id}>{u.nome_completo}</option>)}
                   </select>
                 </label>
-                <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end' }}>
+                <label className="fx-field-group" style={{ gridColumn: '1 / -1' }}>
+                  <span>Descrição</span>
+                  <textarea
+                    required
+                    value={descricao}
+                    onChange={(ev) => setDescricao(ev.target.value)}
+                    placeholder="Ex.: Post do lançamento da turma de férias"
+                    rows={6}
+                    style={{
+                      width: '100%',
+                      minHeight: 140,
+                      resize: 'vertical',
+                      fontFamily: 'inherit',
+                      fontSize: 'inherit',
+                      lineHeight: 1.5,
+                      whiteSpace: 'pre-wrap',
+                    }}
+                  />
+                </label>
+                <div style={{ display: 'flex', gap: 10, alignItems: 'center', gridColumn: '1 / -1' }}>
                   <button type="submit" className="fx-btn fx-btn-primary" disabled={salvando}>
                     {salvando ? 'Salvando...' : editandoId ? 'Salvar edição' : '+ Adicionar'}
                   </button>
-                  {editandoId && <button type="button" className="fx-btn fx-btn-ghost" onClick={cancelarEdicao}>Cancelar</button>}
+                  {editandoId && (
+                    <button type="button" className="fx-btn fx-btn-ghost" onClick={() => { cancelarEdicao(); setAba('lista') }}>
+                      Cancelar
+                    </button>
+                  )}
                 </div>
               </div>
             </form>
           )}
 
-          <TabelaEntradas entradas={entradas} podeEditar={podeEditar} onAbrir={setEntradaDetalhe} onEditar={iniciarEdicao} onExcluir={onExcluir} />
+          {aba === 'lista' && (
+            <TabelaEntradas entradas={entradas} podeEditar={podeEditar} onAbrir={setEntradaDetalhe} onEditar={iniciarEdicao} onExcluir={onExcluir} />
+          )}
         </div>
       </div>
 
@@ -358,7 +401,7 @@ function DetalheModal({ entrada, podeEditar, onClose, onEditar, onExcluir }) {
             </div>
             <div className="fx-detalhe-item">
               <span className="fx-detalhe-label">Descrição</span>
-              <p className="fx-detalhe-valor">{entrada.descricao}</p>
+              <p className="fx-detalhe-valor" style={{ whiteSpace: 'pre-wrap' }}>{entrada.descricao}</p>
             </div>
             <div className="fx-detalhe-item">
               <span className="fx-detalhe-label">Responsável</span>
@@ -379,7 +422,7 @@ function DetalheModal({ entrada, podeEditar, onClose, onEditar, onExcluir }) {
 
 function TabelaEntradas({ entradas, podeEditar, onAbrir, onEditar, onExcluir }) {
   return (
-    <div style={{ marginTop: 22 }}>
+    <div>
       <h4 className="fx-calendario-secao-titulo"><span className="fx-calendario-dot" style={{ background: COR_PRINCIPAL }} />Postagens</h4>
       {entradas.length === 0 ? (
         <div className="fx-empty" style={{ padding: 16 }}>Nenhum lançamento para este dia.</div>
@@ -388,7 +431,7 @@ function TabelaEntradas({ entradas, podeEditar, onAbrir, onEditar, onExcluir }) 
           {entradas.map((e) => (
             <button key={e.id} type="button" className="fx-lista-postagem-item" onClick={() => onAbrir(e)}>
               <span className={`fx-pill fx-pill--${e.tipo === 'FEED' ? 'ativo' : 'normal'}`}>{e.tipo}</span>
-              <span className="fx-lista-postagem-desc">{e.descricao}</span>
+              <span className="fx-lista-postagem-desc" style={{ whiteSpace: 'pre-wrap' }}>{e.descricao}</span>
               <span className="fx-lista-postagem-resp">{e.usuarios?.nome_completo || '—'}</span>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M9 6l6 6-6 6" /></svg>
             </button>
