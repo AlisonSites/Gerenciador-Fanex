@@ -9,6 +9,18 @@ import '../styles/kanban.css'
 const PRIORIDADES = ['Baixa', 'Normal', 'Alta', 'Urgente']
 const PRIORIDADE_CLASSE = { Baixa: 'baixa', Normal: 'normal', Alta: 'alta', Urgente: 'urgente' }
 
+// Formata uma data "pura" (ex.: "2026-08-12", vinda de um <input type="date">
+// ou de uma coluna DATE do banco) direto a partir da string, sem passar por
+// `new Date(...)`. Isso evita o bug de fuso horário: `new Date("2026-08-12")`
+// é interpretado como meia-noite em UTC, e ao formatar de volta para o
+// horário local (Brasil, UTC-3) o dia "volta" uma unidade (ex.: 12/08 vira
+// 11/08 no card).
+function formatarDataBR(dataStr) {
+  if (!dataStr) return ''
+  const [ano, mes, dia] = dataStr.split('-')
+  return `${dia}/${mes}/${ano}`
+}
+
 export default function Tarefas() {
   const { usuario, temPermissao, unidadeAtual } = useAuth()
   const podeGerenciarTudo = temPermissao('gerenciar_tarefas') // Administrador e Coordenador
@@ -231,9 +243,10 @@ function QuadroDoGrupo({ grupoId, podeGerenciarTudo, podeVerTudo, podeExcluirTar
           if (!a.data_vencimento) return 1;
           if (!b.data_vencimento) return -1;
 
-          const dateA = new Date(a.data_vencimento);
-          const dateB = new Date(b.data_vencimento);
-          return dateA - dateB; // Mais recente no topo
+          // Comparação simples de string funciona porque o formato é
+          // "AAAA-MM-DD" (ordenável lexicograficamente), e evita o mesmo
+          // problema de fuso horário do `new Date(...)`.
+          return a.data_vencimento.localeCompare(b.data_vencimento);
         })
     }))
   }, [statusList, tarefas])
@@ -368,7 +381,7 @@ function QuadroDoGrupo({ grupoId, podeGerenciarTudo, podeVerTudo, podeExcluirTar
                         {t.prioridade}
                       </span>
                       {t.data_vencimento && (
-                        <span className="fx-card-date">{new Date(t.data_vencimento).toLocaleDateString('pt-BR')}</span>
+                        <span className="fx-card-date">{formatarDataBR(t.data_vencimento)}</span>
                       )}
                     </div>
                     <p className="fx-card-title">{t.titulo}</p>
