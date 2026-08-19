@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { excluirUsuarioCompleto } from '../../lib/usuarios'
 import { listarUnidadesAtivas, listarUnidadesDoUsuario, definirUnidadesDoUsuario } from '../../lib/unidades'
+import { registrarAuditoria } from '../../lib/auditoria'
 import { useAuth } from '../../context/AuthContext'
 import Layout from '../../components/Layout'
 import ConfirmModal from '../../components/ConfirmModal'
@@ -66,7 +67,9 @@ export default function GerenciarUsuarios() {
 
   const alternarStatus = async (u) => {
     if (!podeEditar) return
-    await supabase.from('usuarios').update({ status: u.status === 'Ativo' ? 'Inativo' : 'Ativo' }).eq('id', u.id)
+    const novoStatus = u.status === 'Ativo' ? 'Inativo' : 'Ativo'
+    await supabase.from('usuarios').update({ status: novoStatus }).eq('id', u.id)
+    registrarAuditoria({ acao: 'editar', modulo: 'Usuários', descricao: `${novoStatus === 'Ativo' ? 'Reativou' : 'Inativou'} o usuário "${u.nome_completo}"` })
     carregar()
   }
 
@@ -79,6 +82,7 @@ export default function GerenciarUsuarios() {
       setErroExclusao(resultado.error)
       return
     }
+    registrarAuditoria({ acao: 'excluir', modulo: 'Usuários', descricao: `Excluiu o usuário "${excluirId.nome_completo}"`, dadosAntes: { id: excluirId.id, nome: excluirId.nome_completo } })
     setExcluirId(null)
     if (resultado.aviso) window.alert(resultado.aviso)
     carregar()
@@ -92,6 +96,7 @@ export default function GerenciarUsuarios() {
       perfil_id: editando.perfil_id || null,
     }).eq('id', editando.id)
     await definirUnidadesDoUsuario(editando.id, unidadesSelecionadas)
+    registrarAuditoria({ acao: 'editar', modulo: 'Usuários', descricao: `Editou o usuário "${editando.nome_completo}"` })
     setEditando(null)
     carregar()
   }
@@ -143,6 +148,7 @@ export default function GerenciarUsuarios() {
     setSucessoEmail('E-mail atualizado com sucesso.')
     setEmailAtual(novoEmail)
     setNovoEmail('')
+    registrarAuditoria({ acao: 'editar', modulo: 'Usuários', descricao: `Trocou o e-mail de acesso de "${editando.nome_completo}"` })
   }
 
   const trocarSenha = async () => {
@@ -167,6 +173,7 @@ export default function GerenciarUsuarios() {
     }
     setSucessoSenha('Senha atualizada com sucesso.')
     setNovaSenha('')
+    registrarAuditoria({ acao: 'editar', modulo: 'Usuários', descricao: `Trocou a senha de acesso de "${editando.nome_completo}"` })
   }
 
   return (

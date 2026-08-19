@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
+import { registrarAuditoria } from '../../lib/auditoria'
 import { useAuth } from '../../context/AuthContext'
 import Layout from '../../components/Layout'
 import ConfirmModal from '../../components/ConfirmModal'
@@ -44,9 +45,11 @@ export default function CriarGrupo() {
       if (editId) {
         const { error } = await supabase.from('grupos').update({ nome, status, unidade_id: unidadeId }).eq('id', editId)
         if (error) throw error
+        registrarAuditoria({ acao: 'editar', modulo: 'Grupos', descricao: `Editou o grupo "${nome}"` })
       } else {
         const { error } = await supabase.from('grupos').insert({ nome, status, unidade_id: unidadeId })
         if (error) throw error
+        registrarAuditoria({ acao: 'criar', modulo: 'Grupos', descricao: `Criou o grupo "${nome}"` })
       }
       setNome('')
       setStatus('Ativo')
@@ -76,12 +79,14 @@ export default function CriarGrupo() {
   }
 
   const excluir = async () => {
+    const grupoAlvo = grupos.find((g) => g.id === excluirId)
     const { error } = await supabase.from('grupos').delete().eq('id', excluirId)
     setExcluirId(null)
     if (error) {
       window.alert('Não foi possível excluir o grupo: ' + error.message)
       return
     }
+    registrarAuditoria({ acao: 'excluir', modulo: 'Grupos', descricao: `Excluiu o grupo "${grupoAlvo?.nome || excluirId}"` })
     carregar()
   }
 

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { excluirUsuarioCompleto } from '../../lib/usuarios'
 import { listarUnidadesAtivas, listarUnidadesDoUsuario, definirUnidadesDoUsuario } from '../../lib/unidades'
+import { registrarAuditoria } from '../../lib/auditoria'
 import Layout from '../../components/Layout'
 import ConfirmModal from '../../components/ConfirmModal'
 import '../../styles/crud.css'
@@ -55,6 +56,7 @@ export default function CriarUsuario() {
           .eq('id', editId)
         if (error) throw error
         await definirUnidadesDoUsuario(editId, unidadesSelecionadas)
+        registrarAuditoria({ acao: 'editar', modulo: 'Usuários', descricao: `Editou o usuário "${form.nome_completo}"` })
       } else {
         let userId = null
         if (form.email && form.senha) {
@@ -94,6 +96,7 @@ export default function CriarUsuario() {
         if (novoUsuario?.id) {
           await definirUnidadesDoUsuario(novoUsuario.id, unidadesSelecionadas)
         }
+        registrarAuditoria({ acao: 'criar', modulo: 'Usuários', descricao: `Criou o usuário "${form.nome_completo}"`, dadosDepois: { id: novoUsuario?.id, cargo: form.cargo, perfil_id: form.perfil_id } })
       }
       setForm(VAZIO)
       setEditId(null)
@@ -136,6 +139,7 @@ export default function CriarUsuario() {
       setErroExclusao(resultado.error)
       return
     }
+    registrarAuditoria({ acao: 'excluir', modulo: 'Usuários', descricao: `Excluiu o usuário "${excluirId.nome_completo}"`, dadosAntes: { id: excluirId.id, nome: excluirId.nome_completo } })
     setExcluirId(null)
     if (resultado.aviso) window.alert(resultado.aviso)
     carregar()

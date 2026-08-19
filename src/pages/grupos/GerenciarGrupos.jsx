@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
+import { registrarAuditoria } from '../../lib/auditoria'
 import { useAuth } from '../../context/AuthContext'
 import Layout from '../../components/Layout'
 import '../../styles/crud.css'
@@ -34,6 +35,9 @@ export default function GerenciarGrupos() {
   const adicionarMembro = async () => {
     if (!isAdmin || !novoMembroId || !grupoAtivo) return
     await supabase.from('grupo_membros').insert({ grupo_id: grupoAtivo, usuario_id: novoMembroId })
+    const usuarioAlvo = usuarios.find((u) => u.id === novoMembroId)
+    const grupoAlvo = grupos.find((g) => g.id === grupoAtivo)
+    registrarAuditoria({ acao: 'editar', modulo: 'Grupos', descricao: `Adicionou "${usuarioAlvo?.nome_completo || novoMembroId}" ao grupo "${grupoAlvo?.nome || grupoAtivo}"` })
     setNovoMembroId('')
     carregar()
   }
@@ -45,6 +49,9 @@ export default function GerenciarGrupos() {
       window.alert('Não foi possível remover este membro: ' + error.message)
       return
     }
+    const usuarioAlvo = usuarios.find((u) => u.id === usuarioId)
+    const grupoAlvo = grupos.find((g) => g.id === grupoAtivo)
+    registrarAuditoria({ acao: 'editar', modulo: 'Grupos', descricao: `Removeu "${usuarioAlvo?.nome_completo || usuarioId}" do grupo "${grupoAlvo?.nome || grupoAtivo}"` })
     carregar()
   }
 

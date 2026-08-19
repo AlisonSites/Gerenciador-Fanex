@@ -2,6 +2,9 @@ import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
+import { listarComentarios, criarComentario, excluirComentario } from '../lib/comentarios'
+import { listarAnexos, enviarAnexo, obterUrlAnexo, excluirAnexo, formatarTamanho } from '../lib/anexos'
+import { registrarAuditoria } from '../lib/auditoria'
 import Layout from '../components/Layout'
 import ConfirmModal from '../components/ConfirmModal'
 import '../styles/kanban.css'
@@ -31,6 +34,11 @@ export default function Tarefas() {
   // são permissões separadas de "gerenciar_tarefas" (editar/mover cartões).
   const podeExcluirTarefas = temPermissao('excluir_tarefas')
   const podeGerenciarColunas = temPermissao('gerenciar_colunas_tarefas')
+  // Comentar, anexar e etiquetar são permissões próprias — dão acesso a
+  // essas ações mesmo para quem só edita as próprias tarefas.
+  const podeComentar = temPermissao('comentar_tarefas')
+  const podeAnexar = temPermissao('anexar_arquivos_tarefas')
+  const podeEtiquetar = temPermissao('etiquetar_tarefas')
   const [searchParams, setSearchParams] = useSearchParams()
   const grupoId = searchParams.get('grupo')
 
@@ -46,6 +54,9 @@ export default function Tarefas() {
           podeVerTudo={podeVerTudo}
           podeExcluirTarefas={podeExcluirTarefas}
           podeGerenciarColunas={podeGerenciarColunas}
+          podeComentar={podeComentar}
+          podeAnexar={podeAnexar}
+          podeEtiquetar={podeEtiquetar}
           usuario={usuario}
           onVoltar={voltarParaGrupos}
         />
@@ -158,7 +169,7 @@ function SeletorDeGrupos({ podeGerenciarTudo, usuario, unidadeAtual, onAbrirGrup
 // ==========================================================
 // Tela 2: quadro Kanban de um grupo específico
 // ==========================================================
-function QuadroDoGrupo({ grupoId, podeGerenciarTudo, podeVerTudo, podeExcluirTarefas, podeGerenciarColunas, usuario, onVoltar }) {
+function QuadroDoGrupo({ grupoId, podeGerenciarTudo, podeVerTudo, podeExcluirTarefas, podeGerenciarColunas, podeComentar, podeAnexar, podeEtiquetar, usuario, onVoltar }) {
   const [grupo, setGrupo] = useState(null)
   const [acessoNegado, setAcessoNegado] = useState(false)
   const [statusList, setStatusList] = useState([])
@@ -220,7 +231,24 @@ function QuadroDoGrupo({ grupoId, podeGerenciarTudo, podeVerTudo, podeExcluirTar
     }
 
     const { data: tarefasData } = await tarefasQuery
-    setTarefas(tarefasData || [])
+    let tarefasComContagens = tarefasData || []
+    const idsTarefas = tarefasComContagens.map((t) => t.id)
+    if (idsTarefas.length) {
+      const [{ data: comentariosData }, { data: anexosData }] = await Promise.all([
+        supabase.from('tarefa_comentarios').select('tarefa_id').in('tarefa_id', idsTarefas),
+        supabase.from('tarefa_anexos').select('tarefa_id').in('tarefa_id', idsTarefas),
+      ])
+      const mapaComentarios = {}
+      ;(comentariosData || []).forEach((c) => { mapaComentarios[c.tarefa_id] = (mapaComentarios[c.tarefa_id] || 0) + 1 })
+      const mapaAnexos = {}
+      ;(anexosData || []).forEach((a) => { mapaAnexos[a.tarefa_id] = (mapaAnexos[a.tarefa_id] || 0) + 1 })
+      tarefasComContagens = tarefasComContagens.map((t) => ({
+        ...t,
+        comentarios_count: mapaComentarios[t.id] || 0,
+        anexos_count: mapaAnexos[t.id] || 0,
+      }))
+    }
+    setTarefas(tarefasComContagens)
 
     const { data: membrosData } = await supabase
       .from('grupo_membros')
@@ -386,8 +414,29 @@ function QuadroDoGrupo({ grupoId, podeGerenciarTudo, podeVerTudo, podeExcluirTar
                     </div>
                     <p className="fx-card-title">{t.titulo}</p>
                     {t.descricao && <p className="fx-card-desc">{t.descricao}</p>}
+                    {t.etiquetas?.length > 0 && (
+                      <div className="fx-card-tags">
+                        {t.etiquetas.map((tag) => (
+                          <span className="fx-tag-chip" key={tag}>{tag}</span>
+                        ))}
+                      </div>
+                    )}
                     <div className="fx-card-foot">
                       <span className="fx-card-owner">{t.usuarios?.nome_completo || 'Sem responsável'}</span>
+                      <div className="fx-card-icons">
+                        {t.comentarios_count > 0 && (
+                          <span className="fx-card-icon-badge" title={`${t.comentarios_count} comentário(s)`}>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z" /></svg>
+                            {t.comentarios_count}
+                          </span>
+                        )}
+                        {t.anexos_count > 0 && (
+                          <span className="fx-card-icon-badge" title={`${t.anexos_count} anexo(s)`}>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" /></svg>
+                            {t.anexos_count}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -407,7 +456,9 @@ function QuadroDoGrupo({ grupoId, podeGerenciarTudo, podeVerTudo, podeExcluirTar
           usuarios={membros}
           usuarioAtual={usuario}
           grupoId={grupoId}
+          grupoNome={grupo?.nome}
           unidadeId={grupo?.unidade_id}
+          podeEtiquetar={podeEtiquetar}
           onClose={() => setModalNovaTarefa(false)}
           onSaved={() => { setModalNovaTarefa(false); carregar() }}
         />
@@ -450,6 +501,7 @@ function QuadroDoGrupo({ grupoId, podeGerenciarTudo, podeVerTudo, podeExcluirTar
                 window.alert('Não foi possível excluir este status: ' + error.message)
                 return
               }
+              registrarAuditoria({ acao: 'excluir', modulo: 'Tarefas', descricao: `Excluiu o status "${statusExcluindo.nome}" do quadro Kanban` })
               carregar()
             }}
             onCancel={() => setStatusExcluindo(null)}
@@ -467,6 +519,10 @@ function QuadroDoGrupo({ grupoId, podeGerenciarTudo, podeVerTudo, podeExcluirTar
           // tarefa; sem ela, cada pessoa ainda pode excluir as próprias
           // tarefas (comportamento que já existia antes).
           podeExcluir={podeExcluirTarefas || tarefaEditando.usuario_id === usuario?.id}
+          podeComentar={podeComentar}
+          podeAnexar={podeAnexar}
+          podeEtiquetar={podeEtiquetar}
+          usuarioAtual={usuario}
           onClose={() => setTarefaEditando(null)}
           onSaved={() => { setTarefaEditando(null); carregar() }}
           onExcluir={() => { setTarefaExcluindo(tarefaEditando); setTarefaEditando(null) }}
@@ -494,6 +550,12 @@ function QuadroDoGrupo({ grupoId, podeGerenciarTudo, podeVerTudo, podeExcluirTar
               window.alert('Não foi possível excluir esta tarefa: ' + error.message)
               return
             }
+            registrarAuditoria({
+              acao: 'excluir',
+              modulo: 'Tarefas',
+              descricao: `Excluiu a tarefa "${tarefaExcluindo.titulo}"`,
+              dadosAntes: { id: tarefaExcluindo.id, titulo: tarefaExcluindo.titulo, grupo_id: tarefaExcluindo.grupo_id },
+            })
             carregar()
           }}
           onCancel={() => setTarefaExcluindo(null)}
@@ -503,11 +565,50 @@ function QuadroDoGrupo({ grupoId, podeGerenciarTudo, podeVerTudo, podeExcluirTar
   )
 }
 
-function NovaTarefaModal({ statusList, usuarios, usuarioAtual, grupoId, unidadeId, onClose, onSaved }) {
+// Campo de etiquetas: digita e aperta Enter (ou vírgula) para criar um chip.
+function EtiquetasInput({ etiquetas, onChange, disabled }) {
+  const [texto, setTexto] = useState('')
+
+  const adicionar = () => {
+    const valor = texto.trim()
+    if (!valor) return
+    if (!etiquetas.includes(valor)) onChange([...etiquetas, valor])
+    setTexto('')
+  }
+
+  const remover = (tag) => onChange(etiquetas.filter((t) => t !== tag))
+
+  return (
+    <div className="fx-tags-input">
+      <div className="fx-tags-input-chips">
+        {etiquetas.map((tag) => (
+          <span className="fx-tag-chip" key={tag}>
+            {tag}
+            {!disabled && <button type="button" onClick={() => remover(tag)}>×</button>}
+          </span>
+        ))}
+        {!disabled && (
+          <input
+            value={texto}
+            onChange={(e) => setTexto(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); adicionar() }
+            }}
+            onBlur={adicionar}
+            placeholder={etiquetas.length ? 'Adicionar outra...' : 'Ex.: urgente-cliente, backend...'}
+          />
+        )}
+      </div>
+    </div>
+  )
+}
+
+function NovaTarefaModal({ statusList, usuarios, usuarioAtual, grupoId, unidadeId, podeEtiquetar, onClose, onSaved }) {
   const [titulo, setTitulo] = useState('')
   const [descricao, setDescricao] = useState('')
   const [dataVencimento, setDataVencimento] = useState('')
   const [prioridade, setPrioridade] = useState('Normal')
+  const [etiquetas, setEtiquetas] = useState([])
   const [statusId, setStatusId] = useState(statusList[0]?.id || '')
   const [usuarioId, setUsuarioId] = useState(usuarioAtual?.id || '')
   const [salvando, setSalvando] = useState(false)
@@ -516,17 +617,21 @@ function NovaTarefaModal({ statusList, usuarios, usuarioAtual, grupoId, unidadeI
     e.preventDefault()
     setSalvando(true)
     // A tarefa herda a unidade do grupo em que está sendo criada.
-    await supabase.from('tarefas').insert({
+    const { data, error } = await supabase.from('tarefas').insert({
       titulo,
       descricao,
       data_vencimento: dataVencimento || null,
       prioridade,
+      etiquetas,
       status_id: statusId || null,
       usuario_id: usuarioId || null,
       grupo_id: grupoId,
       unidade_id: unidadeId || null,
-    })
+    }).select('id').single()
     setSalvando(false)
+    if (!error) {
+      registrarAuditoria({ acao: 'criar', modulo: 'Tarefas', descricao: `Criou a tarefa "${titulo}"`, dadosDepois: { id: data?.id, titulo, prioridade, status_id: statusId } })
+    }
     onSaved()
   }
 
@@ -557,6 +662,12 @@ function NovaTarefaModal({ statusList, usuarios, usuarioAtual, grupoId, unidadeI
                 {PRIORIDADES.map((p) => <option key={p} value={p}>{p}</option>)}
               </select>
             </label>
+            {podeEtiquetar && (
+              <label className="fx-field-group">
+                <span>Etiquetas</span>
+                <EtiquetasInput etiquetas={etiquetas} onChange={setEtiquetas} />
+              </label>
+            )}
             <label className="fx-field-group">
               <span>Status inicial</span>
               <select value={statusId} onChange={(e) => setStatusId(e.target.value)}>
@@ -581,11 +692,12 @@ function NovaTarefaModal({ statusList, usuarios, usuarioAtual, grupoId, unidadeI
   )
 }
 
-function EditarTarefaModal({ tarefa, statusList, usuarios, podeGerenciarTudo, podeExcluir, onClose, onSaved, onExcluir }) {
+function EditarTarefaModal({ tarefa, statusList, usuarios, podeGerenciarTudo, podeExcluir, podeComentar, podeAnexar, podeEtiquetar, usuarioAtual, onClose, onSaved, onExcluir }) {
   const [titulo, setTitulo] = useState(tarefa.titulo || '')
   const [descricao, setDescricao] = useState(tarefa.descricao || '')
   const [dataVencimento, setDataVencimento] = useState(tarefa.data_vencimento || '')
   const [prioridade, setPrioridade] = useState(tarefa.prioridade || 'Normal')
+  const [etiquetas, setEtiquetas] = useState(tarefa.etiquetas || [])
   const [statusId, setStatusId] = useState(tarefa.status_id || '')
   const [usuarioId, setUsuarioId] = useState(tarefa.usuario_id || '')
   const [salvando, setSalvando] = useState(false)
@@ -602,6 +714,7 @@ function EditarTarefaModal({ tarefa, statusList, usuarios, podeGerenciarTudo, po
         descricao,
         data_vencimento: dataVencimento || null,
         prioridade,
+        etiquetas,
         status_id: statusId || null,
         usuario_id: usuarioId || null,
       })
@@ -611,6 +724,13 @@ function EditarTarefaModal({ tarefa, statusList, usuarios, podeGerenciarTudo, po
       setErro(error.message || 'Não foi possível salvar as alterações.')
       return
     }
+    registrarAuditoria({
+      acao: 'editar',
+      modulo: 'Tarefas',
+      descricao: `Editou a tarefa "${titulo}"`,
+      dadosAntes: { titulo: tarefa.titulo, prioridade: tarefa.prioridade, status_id: tarefa.status_id, usuario_id: tarefa.usuario_id },
+      dadosDepois: { titulo, prioridade, status_id: statusId, usuario_id: usuarioId },
+    })
     onSaved()
   }
 
@@ -641,6 +761,12 @@ function EditarTarefaModal({ tarefa, statusList, usuarios, podeGerenciarTudo, po
                 {PRIORIDADES.map((p) => <option key={p} value={p}>{p}</option>)}
               </select>
             </label>
+            {podeEtiquetar && (
+              <label className="fx-field-group">
+                <span>Etiquetas</span>
+                <EtiquetasInput etiquetas={etiquetas} onChange={setEtiquetas} />
+              </label>
+            )}
             <label className="fx-field-group">
               <span>Status</span>
               <select value={statusId} onChange={(e) => setStatusId(e.target.value)}>
@@ -666,7 +792,176 @@ function EditarTarefaModal({ tarefa, statusList, usuarios, podeGerenciarTudo, po
             </div>
           </div>
         </form>
+
+        <AnexosSecao tarefaId={tarefa.id} usuarioAtual={usuarioAtual} podeAnexar={podeAnexar} />
+        <ComentariosSecao tarefaId={tarefa.id} usuarioAtual={usuarioAtual} podeComentar={podeComentar} />
       </div>
+    </div>
+  )
+}
+
+// ==========================================================
+// Comentários e Anexos (dentro do modal de edição de tarefa)
+// ==========================================================
+function ComentariosSecao({ tarefaId, usuarioAtual, podeComentar }) {
+  const [comentarios, setComentarios] = useState([])
+  const [texto, setTexto] = useState('')
+  const [carregando, setCarregando] = useState(true)
+  const [enviando, setEnviando] = useState(false)
+
+  const carregar = async () => {
+    setCarregando(true)
+    try {
+      setComentarios(await listarComentarios(tarefaId))
+    } finally {
+      setCarregando(false)
+    }
+  }
+
+  useEffect(() => { carregar() }, [tarefaId])
+
+  const enviar = async (e) => {
+    e.preventDefault()
+    if (!texto.trim()) return
+    setEnviando(true)
+    try {
+      await criarComentario({ tarefaId, usuarioId: usuarioAtual?.id, texto })
+      setTexto('')
+      await carregar()
+    } catch (err) {
+      window.alert('Não foi possível enviar o comentário: ' + err.message)
+    } finally {
+      setEnviando(false)
+    }
+  }
+
+  const remover = async (id) => {
+    try {
+      await excluirComentario(id)
+      setComentarios((prev) => prev.filter((c) => c.id !== id))
+    } catch (err) {
+      window.alert('Não foi possível excluir o comentário: ' + err.message)
+    }
+  }
+
+  return (
+    <div className="fx-modal-body fx-modal-section" style={{ borderTop: '1px solid var(--fx-line)', paddingTop: 16 }}>
+      <span className="fx-modal-section-title">Comentários {comentarios.length > 0 && `(${comentarios.length})`}</span>
+      {carregando ? (
+        <div className="fx-empty" style={{ padding: 12 }}>Carregando comentários…</div>
+      ) : (
+        <div className="fx-comentarios-list">
+          {comentarios.map((c) => (
+            <div className="fx-comentario-item" key={c.id}>
+              <div className="fx-avatar" style={{ width: 28, height: 28, fontSize: 10 }}>
+                {(c.usuarios?.nome_completo || '?').split(' ').slice(0, 2).map((s) => s[0]?.toUpperCase()).join('')}
+              </div>
+              <div className="fx-comentario-corpo">
+                <div className="fx-comentario-head">
+                  <strong>{c.usuarios?.nome_completo || 'Usuário removido'}</strong>
+                  <small>{new Date(c.created_at).toLocaleString('pt-BR')}</small>
+                  {c.usuario_id === usuarioAtual?.id && (
+                    <button type="button" className="fx-comentario-excluir" onClick={() => remover(c.id)}>Excluir</button>
+                  )}
+                </div>
+                <p>{c.texto}</p>
+              </div>
+            </div>
+          ))}
+          {comentarios.length === 0 && <div className="fx-empty" style={{ padding: 12 }}>Nenhum comentário ainda.</div>}
+        </div>
+      )}
+      {podeComentar && (
+        <form onSubmit={enviar} className="fx-comentario-form">
+          <textarea value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Escreva um comentário..." rows={2} />
+          <button type="submit" className="fx-btn fx-btn-secondary fx-btn-sm" disabled={enviando || !texto.trim()}>
+            {enviando ? 'Enviando...' : 'Comentar'}
+          </button>
+        </form>
+      )}
+    </div>
+  )
+}
+
+function AnexosSecao({ tarefaId, usuarioAtual, podeAnexar }) {
+  const [anexos, setAnexos] = useState([])
+  const [carregando, setCarregando] = useState(true)
+  const [enviando, setEnviando] = useState(false)
+
+  const carregar = async () => {
+    setCarregando(true)
+    try {
+      setAnexos(await listarAnexos(tarefaId))
+    } finally {
+      setCarregando(false)
+    }
+  }
+
+  useEffect(() => { carregar() }, [tarefaId])
+
+  const selecionarArquivo = async (e) => {
+    const arquivo = e.target.files?.[0]
+    e.target.value = ''
+    if (!arquivo) return
+    if (arquivo.size > 20 * 1024 * 1024) {
+      window.alert('Arquivo muito grande. O limite é 20 MB.')
+      return
+    }
+    setEnviando(true)
+    try {
+      await enviarAnexo({ tarefaId, usuarioId: usuarioAtual?.id, arquivo })
+      await carregar()
+    } catch (err) {
+      window.alert('Não foi possível enviar o anexo: ' + err.message)
+    } finally {
+      setEnviando(false)
+    }
+  }
+
+  const abrir = async (anexo) => {
+    try {
+      const url = await obterUrlAnexo(anexo.caminho)
+      if (url) window.open(url, '_blank')
+    } catch (err) {
+      window.alert('Não foi possível abrir o arquivo: ' + err.message)
+    }
+  }
+
+  const remover = async (anexo) => {
+    try {
+      await excluirAnexo(anexo)
+      setAnexos((prev) => prev.filter((a) => a.id !== anexo.id))
+    } catch (err) {
+      window.alert('Não foi possível excluir o anexo: ' + err.message)
+    }
+  }
+
+  return (
+    <div className="fx-modal-body fx-modal-section" style={{ borderTop: '1px solid var(--fx-line)', paddingTop: 16 }}>
+      <div className="fx-modal-section-head">
+        <span className="fx-modal-section-title">Anexos {anexos.length > 0 && `(${anexos.length})`}</span>
+        {podeAnexar && (
+          <label className="fx-btn fx-btn-ghost fx-btn-sm" style={{ cursor: 'pointer' }}>
+            {enviando ? 'Enviando...' : '+ Anexar arquivo'}
+            <input type="file" onChange={selecionarArquivo} disabled={enviando} style={{ display: 'none' }} />
+          </label>
+        )}
+      </div>
+      {carregando ? (
+        <div className="fx-empty" style={{ padding: 12 }}>Carregando anexos…</div>
+      ) : (
+        <div className="fx-anexos-list">
+          {anexos.map((a) => (
+            <div className="fx-anexo-item" key={a.id}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" /></svg>
+              <button type="button" className="fx-anexo-nome" onClick={() => abrir(a)} title="Abrir arquivo">{a.nome_arquivo}</button>
+              <span className="fx-anexo-meta">{formatarTamanho(a.tamanho)} · {a.usuarios?.nome_completo || '—'}</span>
+              <button type="button" className="fx-comentario-excluir" onClick={() => remover(a)}>Excluir</button>
+            </div>
+          ))}
+          {anexos.length === 0 && <div className="fx-empty" style={{ padding: 12 }}>Nenhum anexo ainda.</div>}
+        </div>
+      )}
     </div>
   )
 }
@@ -684,9 +979,11 @@ function StatusModal({ status, proximaOrdem, onClose, onSaved }) {
     setSalvando(true)
     if (editando) {
       await supabase.from('status_tarefas').update({ nome, cor }).eq('id', status.id)
+      registrarAuditoria({ acao: 'editar', modulo: 'Tarefas', descricao: `Editou o status "${nome}" do quadro Kanban` })
     } else {
       const { data: { user } } = await supabase.auth.getUser()
       await supabase.from('status_tarefas').insert({ nome, cor, ordem: proximaOrdem, created_by: user?.id })
+      registrarAuditoria({ acao: 'criar', modulo: 'Tarefas', descricao: `Criou o status "${nome}" no quadro Kanban` })
     }
     setSalvando(false)
     onSaved()

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { listarUnidades, criarUnidade, atualizarUnidade, excluirUnidade } from '../../lib/unidades'
+import { registrarAuditoria } from '../../lib/auditoria'
 import { useAuth } from '../../context/AuthContext'
 import Layout from '../../components/Layout'
 import ConfirmModal from '../../components/ConfirmModal'
@@ -38,8 +39,10 @@ export default function GerenciarUnidades() {
     try {
       if (editId) {
         await atualizarUnidade(editId, { nome, status })
+        registrarAuditoria({ acao: 'editar', modulo: 'Unidades', descricao: `Editou a unidade "${nome}"` })
       } else {
         await criarUnidade({ nome, status })
+        registrarAuditoria({ acao: 'criar', modulo: 'Unidades', descricao: `Criou a unidade "${nome}"` })
       }
       setNome('')
       setStatus('Ativo')
@@ -70,8 +73,10 @@ export default function GerenciarUnidades() {
   const excluir = async () => {
     if (!podeExcluir) return
     setErro('')
+    const unidadeAlvo = unidades.find((u) => u.id === excluirId)
     try {
       await excluirUnidade(excluirId)
+      registrarAuditoria({ acao: 'excluir', modulo: 'Unidades', descricao: `Excluiu a unidade "${unidadeAlvo?.nome || excluirId}"` })
       setExcluirId(null)
       await carregar()
       await refresh()

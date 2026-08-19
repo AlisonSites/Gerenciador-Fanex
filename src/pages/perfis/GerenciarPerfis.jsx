@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase, PERMISSOES } from '../../lib/supabase'
+import { registrarAuditoria } from '../../lib/auditoria'
 import { useAuth } from '../../context/AuthContext'
 import Layout from '../../components/Layout'
 import ConfirmModal from '../../components/ConfirmModal'
@@ -36,17 +37,20 @@ export default function GerenciarPerfis() {
     e.preventDefault()
     if (!podeEditar) return
     await supabase.from('perfis_acesso').update({ nome: editando.nome, permissoes: editando.permissoes }).eq('id', editando.id)
+    registrarAuditoria({ acao: 'editar', modulo: 'Perfis', descricao: `Alterou as permissões do perfil "${editando.nome}"` })
     setEditando(null)
     carregar()
   }
 
   const excluir = async () => {
+    const perfilAlvo = perfis.find((p) => p.id === excluirId)
     const { error } = await supabase.from('perfis_acesso').delete().eq('id', excluirId)
     setExcluirId(null)
     if (error) {
       window.alert('Não foi possível excluir este perfil: provavelmente ainda há usuários vinculados a ele. Troque o perfil desses usuários antes de excluir.')
       return
     }
+    registrarAuditoria({ acao: 'excluir', modulo: 'Perfis', descricao: `Excluiu o perfil de acesso "${perfilAlvo?.nome || excluirId}"` })
     carregar()
   }
 

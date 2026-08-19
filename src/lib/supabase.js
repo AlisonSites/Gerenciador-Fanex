@@ -31,6 +31,11 @@ export const PERMISSOES = [
   { key: 'excluir_tarefas', label: 'Excluir Tarefas', grupo: 'Tarefas' },
   { key: 'ver_todas_tarefas', label: 'Ver Todas as Tarefas (não só as próprias)', grupo: 'Tarefas' },
   { key: 'gerenciar_colunas_tarefas', label: 'Gerenciar Colunas do Quadro (Kanban)', grupo: 'Tarefas' },
+  { key: 'definir_prioridade_tarefas', label: 'Definir Prioridade das Tarefas', grupo: 'Tarefas' },
+  { key: 'etiquetar_tarefas', label: 'Adicionar/Editar Etiquetas em Tarefas', grupo: 'Tarefas' },
+  { key: 'comentar_tarefas', label: 'Comentar em Tarefas', grupo: 'Tarefas' },
+  { key: 'anexar_arquivos_tarefas', label: 'Anexar Arquivos em Tarefas', grupo: 'Tarefas' },
+  { key: 'ver_tarefas_atrasadas_todos', label: 'Ver Tarefas Atrasadas de Todos', grupo: 'Tarefas' },
 
   // Usuários
   { key: 'ver_usuarios', label: 'Ver Usuários (somente leitura)', grupo: 'Usuários' },
@@ -38,12 +43,16 @@ export const PERMISSOES = [
   { key: 'gerenciar_usuarios', label: 'Editar/Gerenciar Usuários', grupo: 'Usuários' },
   { key: 'excluir_usuarios', label: 'Excluir Usuários', grupo: 'Usuários' },
   { key: 'gerenciar_credenciais_usuarios', label: 'Trocar Senha/E-mail de Usuários', grupo: 'Usuários' },
+  { key: 'inativar_usuarios', label: 'Inativar/Reativar Usuário', grupo: 'Usuários' },
+  { key: 'ver_historico_usuario', label: 'Ver Histórico de Atividade do Usuário', grupo: 'Usuários' },
+  { key: 'impersonar_usuario', label: 'Acessar o Sistema Como Outro Usuário (Suporte)', grupo: 'Usuários' },
 
   // Grupos / Setores
   { key: 'ver_grupos', label: 'Ver Grupos (somente leitura)', grupo: 'Grupos / Setores' },
   { key: 'criar_grupos', label: 'Criar Grupos', grupo: 'Grupos / Setores' },
   { key: 'gerenciar_grupos', label: 'Editar/Gerenciar Grupos (membros)', grupo: 'Grupos / Setores' },
   { key: 'excluir_grupos', label: 'Excluir Grupos', grupo: 'Grupos / Setores' },
+  { key: 'transferir_membros_grupos', label: 'Transferir Membro entre Grupos', grupo: 'Grupos / Setores' },
 
   // Perfis de acesso
   { key: 'ver_perfis', label: 'Ver Perfis de Acesso (somente leitura)', grupo: 'Perfis de Acesso' },
@@ -59,7 +68,11 @@ export const PERMISSOES = [
   // Relatórios
   { key: 'relatorio_pessoal', label: 'Ver Relatório por Pessoa', grupo: 'Relatórios' },
   { key: 'relatorio_calendario', label: 'Ver Relatório do Calendário por Pessoa', grupo: 'Relatórios' },
+  { key: 'relatorio_grupo', label: 'Ver Relatório por Grupo/Setor', grupo: 'Relatórios' },
+  { key: 'relatorio_unidades', label: 'Ver Relatório Consolidado por Unidade', grupo: 'Relatórios' },
+  { key: 'relatorio_produtividade_geral', label: 'Ver Relatório de Produtividade Geral', grupo: 'Relatórios' },
   { key: 'exportar_relatorios', label: 'Exportar Relatórios (CSV)', grupo: 'Relatórios' },
+  { key: 'exportar_relatorios_pdf', label: 'Exportar Relatórios em PDF', grupo: 'Relatórios' },
 
   // Calendário de Marketing
   { key: 'calendario_marketing', label: 'Ver Calendário de Marketing', grupo: 'Calendário de Marketing' },
@@ -69,9 +82,16 @@ export const PERMISSOES = [
   { key: 'criar_calendario_postagem', label: 'Criar Registros no Calendário de Postagem', grupo: 'Calendário de Postagem' },
   { key: 'ver_todas_postagens', label: 'Ver Todas as Postagens (não só as próprias)', grupo: 'Calendário de Postagem' },
 
-  // Sistema / Log de erros
+  // Financeiro
+  { key: 'ver_financeiro', label: 'Ver Financeiro', grupo: 'Financeiro' },
+  { key: 'gerenciar_financeiro', label: 'Gerenciar Financeiro', grupo: 'Financeiro' },
+
+  // Sistema / Log de erros / Auditoria
   { key: 'ver_logs_erros', label: 'Ver Log de Erros', grupo: 'Sistema' },
   { key: 'excluir_logs_erros', label: 'Limpar Log de Erros', grupo: 'Sistema' },
+  { key: 'ver_auditoria', label: 'Ver Log de Auditoria', grupo: 'Sistema' },
+  { key: 'excluir_auditoria', label: 'Limpar Log de Auditoria', grupo: 'Sistema' },
+  { key: 'gerenciar_notificacoes', label: 'Configurar Notificações do Sistema', grupo: 'Sistema' },
 ]
 
 // Ordem em que os grupos aparecem na tela de Perfis de Acesso.
@@ -85,6 +105,7 @@ export const ORDEM_GRUPOS_PERMISSOES = [
   'Perfis de Acesso',
   'Unidades',
   'Relatórios',
+  'Financeiro',
   'Sistema',
 ]
 

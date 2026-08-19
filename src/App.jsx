@@ -13,10 +13,12 @@ import CriarGrupo from './pages/grupos/CriarGrupo'
 import GerenciarGrupos from './pages/grupos/GerenciarGrupos'
 import RelatorioPessoal from './pages/relatorios/RelatorioPessoal'
 import RelatorioCalendario from './pages/relatorios/RelatorioCalendario'
+import RelatorioUnidades from './pages/relatorios/RelatorioUnidades'
 import CalendarioMarketing from './pages/calendario/CalendarioMarketing'
 import CalendarioPostagem from './pages/calendario/CalendarioPostagem'
 import GerenciarUnidades from './pages/unidades/GerenciarUnidades'
 import LogErros from './pages/logs/LogErros'
+import LogAuditoria from './pages/logs/LogAuditoria'
 
 export default function App() {
   return (
@@ -41,11 +43,13 @@ export default function App() {
 
           <Route path="/relatorios/pessoal" element={<ProtectedRoute permissao="relatorio_pessoal"><RelatorioPessoal /></ProtectedRoute>} />
           <Route path="/relatorios/calendario" element={<ProtectedRoute permissao="relatorio_calendario"><RelatorioCalendario /></ProtectedRoute>} />
+          <Route path="/relatorios/unidades" element={<ProtectedRoute permissao="relatorio_unidades"><RelatorioUnidades /></ProtectedRoute>} />
 
           <Route path="/calendario/marketing" element={<ProtectedRoute permissao="calendario_marketing"><CalendarioMarketing /></ProtectedRoute>} />
           <Route path="/calendario/postagem" element={<ProtectedRoute permissao="calendario_postagem"><CalendarioPostagem /></ProtectedRoute>} />
 
-          <Route path="/logs" element={<ProtectedRoute permissao="ver_logs_erros"><LogErros /></ProtectedRoute>} />
+          <Route path="/logs/erros" element={<ProtectedRoute permissao="ver_logs_erros"><LogErros /></ProtectedRoute>} />
+          <Route path="/logs/auditoria" element={<ProtectedRoute permissao="ver_auditoria"><LogAuditoria /></ProtectedRoute>} />
 
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />

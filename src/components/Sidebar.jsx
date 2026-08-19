@@ -16,12 +16,14 @@ const NAV = [
   { section: 'Relatórios' },
   { to: '/relatorios/pessoal', label: 'Relatório por Pessoa', perm: 'relatorio_pessoal', icon: 'chart' },
   { to: '/relatorios/calendario', label: 'Relatório do Calendário', perm: 'relatorio_calendario', icon: 'calendar-chart' },
+  { to: '/relatorios/unidades', label: 'Relatório por Unidade', perm: 'relatorio_unidades', icon: 'building' },
   { section: 'Acesso' },
   { to: '/perfis/criar', label: 'Criar Perfil', perm: 'criar_perfis', icon: 'shield-plus' },
   { to: '/perfis/gerenciar', label: 'Gerenciar Perfis', perm: ['ver_perfis', 'gerenciar_perfis'], icon: 'shield', fallbackView: true },
   { to: '/unidades', label: 'Unidades', perm: ['ver_unidades', 'gerenciar_unidades'], icon: 'building' },
   { section: 'Sistema' },
-  { to: '/logs', label: 'Log de Erros', perm: 'ver_logs_erros', icon: 'log' },
+  { to: '/logs/erros', label: 'Log de Erros', perm: 'ver_logs_erros', icon: 'log' },
+  { to: '/logs/auditoria', label: 'Log de Auditoria', perm: 'ver_auditoria', icon: 'audit' },
 ]
 
 const ICONS = {
@@ -38,6 +40,7 @@ const ICONS = {
   'calendar-chart': <path d="M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2zM8 2v4m8-4v4M8 14v4m4-7v7m4-4v4" />,
   building: <path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6M9 9h.01M9 13h.01M15 9h.01M15 13h.01" />,
   log: <path d="M4 4h16v16H4V4zm3 5h10M7 12h10M7 15h6M4 4l4 4M4 8l4-4" />,
+  audit: <path d="M9 11l3 3L22 4M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" />,
 }
 
 function Icon({ name }) {

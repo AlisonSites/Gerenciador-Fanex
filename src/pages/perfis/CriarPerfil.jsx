@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase, PERMISSOES } from '../../lib/supabase'
+import { registrarAuditoria } from '../../lib/auditoria'
 import { useAuth } from '../../context/AuthContext'
 import Layout from '../../components/Layout'
 import ConfirmModal from '../../components/ConfirmModal'
@@ -39,8 +40,10 @@ export default function CriarPerfil() {
     try {
       if (editId) {
         await supabase.from('perfis_acesso').update({ nome, permissoes }).eq('id', editId)
+        registrarAuditoria({ acao: 'editar', modulo: 'Perfis', descricao: `Editou o perfil de acesso "${nome}"` })
       } else {
         await supabase.from('perfis_acesso').insert({ nome, permissoes })
+        registrarAuditoria({ acao: 'criar', modulo: 'Perfis', descricao: `Criou o perfil de acesso "${nome}"` })
       }
       setNome('')
       setPermissoes(permissoesVazias())
@@ -65,12 +68,14 @@ export default function CriarPerfil() {
   }
 
   const excluir = async () => {
+    const perfilAlvo = perfis.find((p) => p.id === excluirId)
     const { error } = await supabase.from('perfis_acesso').delete().eq('id', excluirId)
     setExcluirId(null)
     if (error) {
       window.alert('Não foi possível excluir este perfil: provavelmente ainda há usuários vinculados a ele. Troque o perfil desses usuários antes de excluir.')
       return
     }
+    registrarAuditoria({ acao: 'excluir', modulo: 'Perfis', descricao: `Excluiu o perfil de acesso "${perfilAlvo?.nome || excluirId}"` })
     carregar()
   }
 

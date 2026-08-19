@@ -272,7 +272,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Nova seção: Tarefas Vencidas */}
+          {/* Nova seção: Tarefas Vencidas
           {vencidas.length > 0 && (
             <div className="fx-panel fx-panel-pad" style={{ marginTop: 24, borderColor: 'var(--fx-alta)' }}>
               <h3 style={{ marginBottom: 16, color: 'var(--fx-alta)' }}>
@@ -293,7 +293,7 @@ export default function Dashboard() {
                 ))}
               </ul>
             </div>
-          )}
+          )} */}
         </>
       )}
     </Layout>
