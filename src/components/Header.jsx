@@ -8,7 +8,10 @@ function isConcluidoNome(nome) {
 }
 
 export default function Header({ title, onMenuClick }) {
-  const { usuario, perfil, logout, isColaborador, unidades, unidadeAtual, trocarUnidade } = useAuth()
+  const { usuario, perfil, logout, temPermissao, unidades, unidadeAtual, trocarUnidade } = useAuth()
+  // Vê notificações só das próprias tarefas, a menos que tenha a permissão
+  // de ver as tarefas (e portanto notificações) de todo mundo.
+  const podeVerNotificacoesDeTodos = temPermissao('ver_tarefas_atrasadas_todos')
   const navigate = useNavigate()
   const [notifs, setNotifs] = useState([])
   const [open, setOpen] = useState(false)
@@ -28,7 +31,7 @@ export default function Header({ title, onMenuClick }) {
       .order('data_vencimento', { ascending: true, nullsFirst: false })
       .limit(50)
 
-    if (isColaborador) {
+    if (!podeVerNotificacoesDeTodos) {
       query = query.eq('usuario_id', usuario.id)
     }
 
@@ -50,7 +53,7 @@ export default function Header({ title, onMenuClick }) {
       return 0
     })
     setNotifs(lista)
-  }, [usuario, isColaborador])
+  }, [usuario, podeVerNotificacoesDeTodos])
 
   useEffect(() => {
     carregar()
