@@ -7,7 +7,8 @@ import '../../styles/crud.css'
 import '../../styles/grupos.css'
 
 export default function GerenciarGrupos() {
-  const { isAdmin } = useAuth()
+  const { isAdmin, temPermissao } = useAuth()
+  const podeGerenciarMembros = isAdmin || temPermissao('gerenciar_grupos')
   const [grupos, setGrupos] = useState([])
   const [usuarios, setUsuarios] = useState([])
   const [membros, setMembros] = useState({}) // grupo_id -> [usuario]
@@ -33,7 +34,7 @@ export default function GerenciarGrupos() {
   useEffect(() => { carregar() }, [])
 
   const adicionarMembro = async () => {
-    if (!isAdmin || !novoMembroId || !grupoAtivo) return
+    if (!podeGerenciarMembros || !novoMembroId || !grupoAtivo) return
     await supabase.from('grupo_membros').insert({ grupo_id: grupoAtivo, usuario_id: novoMembroId })
     const usuarioAlvo = usuarios.find((u) => u.id === novoMembroId)
     const grupoAlvo = grupos.find((g) => g.id === grupoAtivo)
@@ -43,7 +44,7 @@ export default function GerenciarGrupos() {
   }
 
   const removerMembro = async (usuarioId) => {
-    if (!isAdmin) return
+    if (!podeGerenciarMembros) return
     const { error } = await supabase.from('grupo_membros').delete().match({ grupo_id: grupoAtivo, usuario_id: usuarioId })
     if (error) {
       window.alert('Não foi possível remover este membro: ' + error.message)
@@ -65,7 +66,7 @@ export default function GerenciarGrupos() {
       <div className="fx-page-head">
         <div>
           <h1>Grupos por setor</h1>
-          <p>{isAdmin ? 'Adicione ou remova membros dos grupos.' : 'Modo somente visualização — apenas o Administrador pode alterar membros.'}</p>
+          <p>{podeGerenciarMembros ? 'Adicione ou remova membros dos grupos.' : 'Modo somente visualização — você não tem permissão para alterar membros.'}</p>
         </div>
       </div>
 
@@ -96,7 +97,7 @@ export default function GerenciarGrupos() {
                 {membrosDoGrupo.length} membro(s)
               </p>
 
-              {isAdmin && (
+              {podeGerenciarMembros && (
                 <div className="fx-grupo-add-row">
                   <select className="fx-select" value={novoMembroId} onChange={(e) => setNovoMembroId(e.target.value)}>
                     <option value="">Selecione um usuário para adicionar</option>
@@ -108,9 +109,9 @@ export default function GerenciarGrupos() {
                 </div>
               )}
 
-              {!isAdmin && (
+              {!podeGerenciarMembros && (
                 <div className="fx-permission-note" style={{ marginBottom: 16 }}>
-                  Apenas o perfil Administrador pode adicionar ou remover membros deste grupo.
+                  Você não tem permissão para adicionar ou remover membros deste grupo.
                 </div>
               )}
 
@@ -124,7 +125,7 @@ export default function GerenciarGrupos() {
                       <strong>{m.nome_completo}</strong>
                       <small>{m.cargo || '—'}</small>
                     </div>
-                    {isAdmin && (
+                    {podeGerenciarMembros && (
                       <button className="fx-btn fx-btn-ghost fx-btn-sm" onClick={() => removerMembro(m.id)}>Remover</button>
                     )}
                   </div>

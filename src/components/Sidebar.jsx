@@ -4,22 +4,22 @@ import Logo from '../assets/logo-branco.png'
 
 const NAV = [
   { to: '/dashboard', label: 'Dashboard', perm: 'dashboard', icon: 'grid' },
-  { to: '/tarefas', label: 'Quadro de Tarefas', perm: 'criar_tarefas', icon: 'board' },
+  { to: '/tarefas', label: 'Quadro de Tarefas', perm: ['ver_tarefas', 'criar_tarefas', 'gerenciar_tarefas'], icon: 'board' },
   { to: '/calendario/marketing', label: 'Calendário de Marketing', perm: 'calendario_marketing', icon: 'calendar' },
   { to: '/calendario/postagem', label: 'Calendário de Postagem', perm: 'calendario_postagem', icon: 'calendar-chart' },
   { section: 'Pessoas' },
   { to: '/usuarios/criar', label: 'Criar Usuário', perm: 'criar_usuarios', icon: 'user-plus' },
-  { to: '/usuarios/gerenciar', label: 'Gerenciar Usuários', perm: ['ver_usuarios', 'gerenciar_usuarios'], icon: 'users', fallbackView: true },
+  { to: '/usuarios/gerenciar', label: 'Gerenciar Usuários', perm: ['ver_usuarios', 'gerenciar_usuarios'], icon: 'users' },
   { section: 'Setores' },
   { to: '/grupos/criar', label: 'Criar Grupo', perm: 'criar_grupos', icon: 'folder-plus' },
-  { to: '/grupos/gerenciar', label: 'Gerenciar Grupos', perm: ['ver_grupos', 'gerenciar_grupos'], icon: 'folder', fallbackView: true },
+  { to: '/grupos/gerenciar', label: 'Gerenciar Grupos', perm: ['ver_grupos', 'gerenciar_grupos'], icon: 'folder' },
   { section: 'Relatórios' },
   { to: '/relatorios/pessoal', label: 'Relatório por Pessoa', perm: 'relatorio_pessoal', icon: 'chart' },
   { to: '/relatorios/calendario', label: 'Relatório do Calendário', perm: 'relatorio_calendario', icon: 'calendar-chart' },
   { to: '/relatorios/unidades', label: 'Relatório por Unidade', perm: 'relatorio_unidades', icon: 'building' },
   { section: 'Acesso' },
   { to: '/perfis/criar', label: 'Criar Perfil', perm: 'criar_perfis', icon: 'shield-plus' },
-  { to: '/perfis/gerenciar', label: 'Gerenciar Perfis', perm: ['ver_perfis', 'gerenciar_perfis'], icon: 'shield', fallbackView: true },
+  { to: '/perfis/gerenciar', label: 'Gerenciar Perfis', perm: ['ver_perfis', 'gerenciar_perfis'], icon: 'shield' },
   { to: '/unidades', label: 'Unidades', perm: ['ver_unidades', 'gerenciar_unidades'], icon: 'building' },
   { section: 'Sistema' },
   { to: '/logs/erros', label: 'Log de Erros', perm: 'ver_logs_erros', icon: 'log' },
@@ -70,8 +70,7 @@ export default function Sidebar({ open, onClose }) {
             if (item.section) {
               return <div className="fx-nav-section" key={`s-${idx}`}>{item.section}</div>
             }
-            const liberadoPorPapel = item.fallbackView && perfil?.nome === 'Coordenador'
-            if (item.perm && perfil && !temPermissao(item.perm) && !liberadoPorPapel) return null
+            if (item.perm && perfil && !temPermissao(item.perm)) return null
             return (
               <NavLink
                 key={item.to}

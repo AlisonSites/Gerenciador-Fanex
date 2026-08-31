@@ -31,9 +31,11 @@ function toISODate(d) {
 }
 
 export default function CalendarioMarketing() {
-  const { usuario, perfil, isAdmin, isCoordenador, unidadeAtual } = useAuth()
+  const { usuario, perfil, isAdmin, isCoordenador, temPermissao, unidadeAtual } = useAuth()
   const podeEscolherCategoria = isAdmin || isCoordenador || !CAMPOS_POR_CATEGORIA[perfil?.nome]
   const categoriaFixa = CAMPOS_POR_CATEGORIA[perfil?.nome] ? perfil.nome : null
+  // Libera editar/excluir qualquer lançamento, não só os próprios ou os que a pessoa criou.
+  const podeEditarTudo = isAdmin || temPermissao('editar_todas_marketing')
 
   const [mesAtual, setMesAtual] = useState(() => {
     const hoje = new Date()
@@ -49,7 +51,10 @@ export default function CalendarioMarketing() {
     setLoading(true)
     const inicio = toISODate(new Date(mesAtual.getFullYear(), mesAtual.getMonth(), 1))
     const fim = toISODate(new Date(mesAtual.getFullYear(), mesAtual.getMonth() + 1, 0))
-    let entradasQuery = supabase.from('calendario_entradas').select('*, usuarios(nome_completo)').gte('data', inicio).lte('data', fim).order('created_at')
+    let entradasQuery = supabase
+      .from('calendario_entradas')
+      .select('*, usuarios!calendario_entradas_usuario_id_fkey(nome_completo), criador:usuarios!calendario_entradas_criado_por_fkey(nome_completo)')
+      .gte('data', inicio).lte('data', fim).order('created_at')
     // Mostra só os lançamentos da unidade selecionada no momento.
     if (unidadeAtual?.id) entradasQuery = entradasQuery.eq('unidade_id', unidadeAtual.id)
     const [{ data: entradasData }, { data: usuariosData }] = await Promise.all([
@@ -175,6 +180,7 @@ export default function CalendarioMarketing() {
           usuario={usuario}
           unidadeId={unidadeAtual?.id}
           isAdmin={isAdmin}
+          podeEditarTudo={podeEditarTudo}
           categoriaFixa={categoriaFixa}
           podeEscolherCategoria={podeEscolherCategoria}
           onClose={() => setDiaSelecionado(null)}
@@ -195,7 +201,7 @@ export default function CalendarioMarketing() {
   )
 }
 
-function DiaModal({ dia, entradas, usuario, unidadeId, isAdmin, categoriaFixa, podeEscolherCategoria, onClose, onSalvou, onExcluir }) {
+function DiaModal({ dia, entradas, usuario, unidadeId, isAdmin, podeEditarTudo, categoriaFixa, podeEscolherCategoria, onClose, onSalvou, onExcluir }) {
   const [categoria, setCategoria] = useState(categoriaFixa || 'Marketing')
   const [assunto, setAssunto] = useState('')
   const [campoDois, setCampoDois] = useState(CAMPOS_POR_CATEGORIA[categoriaFixa || 'Marketing'].campoDoisOpcoes[0])
@@ -239,8 +245,10 @@ function DiaModal({ dia, entradas, usuario, unidadeId, isAdmin, categoriaFixa, p
     if (editandoId) {
       await supabase.from('calendario_entradas').update(payload).eq('id', editandoId)
     } else {
-      // Novo lançamento nasce vinculado à unidade ativa no momento.
-      await supabase.from('calendario_entradas').insert({ ...payload, unidade_id: unidadeId || null })
+      // Novo lançamento nasce vinculado à unidade ativa no momento e guarda
+      // quem criou o registro (pode ser diferente do responsável escolhido),
+      // para que essa pessoa também consiga editar depois.
+      await supabase.from('calendario_entradas').insert({ ...payload, unidade_id: unidadeId || null, criado_por: usuario?.id || null })
     }
     setSalvando(false)
     cancelarEdicao()
@@ -250,7 +258,9 @@ function DiaModal({ dia, entradas, usuario, unidadeId, isAdmin, categoriaFixa, p
   const marketing = entradas.filter((e) => e.categoria === 'Marketing')
   const comercial = entradas.filter((e) => e.categoria === 'Comercial')
 
-  const podeEditar = (e) => isAdmin || e.usuario_id === usuario?.id
+  // Pode editar: o responsável pelo registro, quem o criou, ou quem tem
+  // acesso total (admin / permissão "editar_todas_marketing").
+  const podeEditar = (e) => podeEditarTudo || e.usuario_id === usuario?.id || e.criado_por === usuario?.id
 
   return (
     <div className="fx-modal-scrim" onClick={onClose}>
@@ -318,6 +328,7 @@ function TabelaEntradas({ titulo, cor, config, entradas, podeEditar, onEditar, o
                 <th>{config.campoDoisLabel}</th>
                 <th>{config.campoTresLabel}</th>
                 <th>Responsável</th>
+                <th>Adicionado por</th>
                 <th></th>
               </tr>
             </thead>
@@ -328,6 +339,7 @@ function TabelaEntradas({ titulo, cor, config, entradas, podeEditar, onEditar, o
                   <td>{e.campo_dois}</td>
                   <td>{e.campo_tres}</td>
                   <td>{e.usuarios?.nome_completo || '—'}</td>
+                  <td>{e.criador?.nome_completo || '—'}</td>
                   <td>
                     {podeEditar(e) && (
                       <div className="fx-table-actions">

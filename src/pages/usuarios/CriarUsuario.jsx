@@ -3,6 +3,7 @@ import { supabase } from '../../lib/supabase'
 import { excluirUsuarioCompleto } from '../../lib/usuarios'
 import { listarUnidadesAtivas, listarUnidadesDoUsuario, definirUnidadesDoUsuario } from '../../lib/unidades'
 import { registrarAuditoria } from '../../lib/auditoria'
+import { useAuth } from '../../context/AuthContext'
 import Layout from '../../components/Layout'
 import ConfirmModal from '../../components/ConfirmModal'
 import '../../styles/crud.css'
@@ -10,6 +11,12 @@ import '../../styles/crud.css'
 const VAZIO = { nome_completo: '', cargo: '', status: 'Ativo', perfil_id: '', email: '', senha: '' }
 
 export default function CriarUsuario() {
+  const { isAdmin, temPermissao } = useAuth()
+  // Esta tela também lista e permite editar/excluir usuários já
+  // existentes — precisa das mesmas permissões usadas em "Gerenciar
+  // Usuários" para essas duas ações, não só "criar_usuarios".
+  const podeEditar = isAdmin || temPermissao('gerenciar_usuarios')
+  const podeExcluir = isAdmin || temPermissao('excluir_usuarios')
   const [usuarios, setUsuarios] = useState([])
   const [perfis, setPerfis] = useState([])
   const [unidadesDisponiveis, setUnidadesDisponiveis] = useState([])
@@ -256,7 +263,7 @@ export default function CriarUsuario() {
                 <th>Cargo</th>
                 <th>Perfil</th>
                 <th>Status</th>
-                <th></th>
+                {(podeEditar || podeExcluir) && <th></th>}
               </tr>
             </thead>
             <tbody>
@@ -266,12 +273,14 @@ export default function CriarUsuario() {
                   <td>{u.cargo || '—'}</td>
                   <td>{u.perfis_acesso?.nome || '—'}</td>
                   <td><span className={`fx-pill fx-pill--${u.status === 'Ativo' ? 'ativo' : 'inativo'}`}>{u.status}</span></td>
-                  <td>
-                    <div className="fx-table-actions">
-                      <button className="fx-btn fx-btn-ghost fx-btn-sm" onClick={() => editar(u)}>Editar</button>
-                      <button className="fx-btn fx-btn-danger fx-btn-sm" onClick={() => { setErroExclusao(''); setExcluirId(u) }}>Excluir</button>
-                    </div>
-                  </td>
+                  {(podeEditar || podeExcluir) && (
+                    <td>
+                      <div className="fx-table-actions">
+                        {podeEditar && <button className="fx-btn fx-btn-ghost fx-btn-sm" onClick={() => editar(u)}>Editar</button>}
+                        {podeExcluir && <button className="fx-btn fx-btn-danger fx-btn-sm" onClick={() => { setErroExclusao(''); setExcluirId(u) }}>Excluir</button>}
+                      </div>
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>

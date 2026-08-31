@@ -28,10 +28,10 @@ export default function App() {
           <Route path="/login" element={<Login />} />
 
           <Route path="/dashboard" element={<ProtectedRoute permissao="dashboard"><Dashboard /></ProtectedRoute>} />
-          <Route path="/tarefas" element={<ProtectedRoute permissao="criar_tarefas"><Tarefas /></ProtectedRoute>} />
+          <Route path="/tarefas" element={<ProtectedRoute permissao={['ver_tarefas', 'criar_tarefas', 'gerenciar_tarefas']}><Tarefas /></ProtectedRoute>} />
 
           <Route path="/usuarios/criar" element={<ProtectedRoute permissao="criar_usuarios"><CriarUsuario /></ProtectedRoute>} />
-          <Route path="/usuarios/gerenciar" element={<ProtectedRoute permissao={['ver_usuarios', 'gerenciar_usuarios']} allowRoles={['Coordenador']}><GerenciarUsuarios /></ProtectedRoute>} />
+          <Route path="/usuarios/gerenciar" element={<ProtectedRoute permissao={['ver_usuarios', 'gerenciar_usuarios']}><GerenciarUsuarios /></ProtectedRoute>} />
 
           <Route path="/perfis/criar" element={<ProtectedRoute permissao="criar_perfis"><CriarPerfil /></ProtectedRoute>} />
           <Route path="/perfis/gerenciar" element={<ProtectedRoute permissao={['ver_perfis', 'gerenciar_perfis']}><GerenciarPerfis /></ProtectedRoute>} />
@@ -39,7 +39,7 @@ export default function App() {
           <Route path="/unidades" element={<ProtectedRoute permissao={['ver_unidades', 'gerenciar_unidades']}><GerenciarUnidades /></ProtectedRoute>} />
 
           <Route path="/grupos/criar" element={<ProtectedRoute permissao="criar_grupos"><CriarGrupo /></ProtectedRoute>} />
-          <Route path="/grupos/gerenciar" element={<ProtectedRoute permissao={['ver_grupos', 'gerenciar_grupos']} allowRoles={['Coordenador']}><GerenciarGrupos /></ProtectedRoute>} />
+          <Route path="/grupos/gerenciar" element={<ProtectedRoute permissao={['ver_grupos', 'gerenciar_grupos']}><GerenciarGrupos /></ProtectedRoute>} />
 
           <Route path="/relatorios/pessoal" element={<ProtectedRoute permissao="relatorio_pessoal"><RelatorioPessoal /></ProtectedRoute>} />
           <Route path="/relatorios/calendario" element={<ProtectedRoute permissao="relatorio_calendario"><RelatorioCalendario /></ProtectedRoute>} />

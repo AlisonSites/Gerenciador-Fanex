@@ -1,7 +1,7 @@
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
-export default function ProtectedRoute({ children, permissao, allowRoles = [] }) {
+export default function ProtectedRoute({ children, permissao }) {
   const { session, loading, temPermissao, perfil } = useAuth()
 
   if (loading) {
@@ -14,10 +14,9 @@ export default function ProtectedRoute({ children, permissao, allowRoles = [] })
 
   if (!session) return <Navigate to="/login" replace />
 
-  const liberadoPorPapel = perfil && allowRoles.includes(perfil.nome)
   const liberadoPorPermissao = !permissao || (perfil && temPermissao(permissao))
 
-  if (perfil && !liberadoPorPapel && !liberadoPorPermissao) {
+  if (perfil && !liberadoPorPermissao) {
     return (
       <div className="fx-blocked">
         <h2>Acesso restrito</h2>

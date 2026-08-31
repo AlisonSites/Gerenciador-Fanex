@@ -39,6 +39,9 @@ export default function Tarefas() {
   const podeComentar = temPermissao('comentar_tarefas')
   const podeAnexar = temPermissao('anexar_arquivos_tarefas')
   const podeEtiquetar = temPermissao('etiquetar_tarefas')
+  // Quem entra só com "ver_tarefas" (sem criar_tarefas/gerenciar_tarefas)
+  // enxerga o quadro mas não cria cartões novos.
+  const podeCriar = temPermissao(['criar_tarefas', 'gerenciar_tarefas'])
   const [searchParams, setSearchParams] = useSearchParams()
   const grupoId = searchParams.get('grupo')
 
@@ -57,6 +60,7 @@ export default function Tarefas() {
           podeComentar={podeComentar}
           podeAnexar={podeAnexar}
           podeEtiquetar={podeEtiquetar}
+          podeCriar={podeCriar}
           usuario={usuario}
           onVoltar={voltarParaGrupos}
         />
@@ -169,7 +173,7 @@ function SeletorDeGrupos({ podeGerenciarTudo, usuario, unidadeAtual, onAbrirGrup
 // ==========================================================
 // Tela 2: quadro Kanban de um grupo específico
 // ==========================================================
-function QuadroDoGrupo({ grupoId, podeGerenciarTudo, podeVerTudo, podeExcluirTarefas, podeGerenciarColunas, podeComentar, podeAnexar, podeEtiquetar, usuario, onVoltar }) {
+function QuadroDoGrupo({ grupoId, podeGerenciarTudo, podeVerTudo, podeExcluirTarefas, podeGerenciarColunas, podeComentar, podeAnexar, podeEtiquetar, podeCriar, usuario, onVoltar }) {
   const [grupo, setGrupo] = useState(null)
   const [acessoNegado, setAcessoNegado] = useState(false)
   const [statusList, setStatusList] = useState([])
@@ -340,7 +344,9 @@ function QuadroDoGrupo({ grupoId, podeGerenciarTudo, podeVerTudo, podeExcluirTar
           {podeGerenciarColunas && (
             <button className="fx-btn fx-btn-ghost" onClick={() => setModalNovoStatus(true)}>+ Novo status</button>
           )}
-          <button className="fx-btn fx-btn-primary" onClick={() => setModalNovaTarefa(true)}>+ Nova tarefa</button>
+          {podeCriar && (
+            <button className="fx-btn fx-btn-primary" onClick={() => setModalNovaTarefa(true)}>+ Nova tarefa</button>
+          )}
         </div>
       </div>
 
