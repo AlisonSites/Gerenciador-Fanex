@@ -321,6 +321,10 @@
   text-overflow: ellipsis;
 }
 
+.fx-lista-postagem-criador {
+  font-style: italic;
+}
+
 .fx-lista-postagem-item svg {
   flex: 0 0 auto;
   color: var(--fx-muted);

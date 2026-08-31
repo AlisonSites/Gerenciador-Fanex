@@ -22,6 +22,8 @@ export default function CalendarioPostagem() {
   const podeVerTudo = isAdmin || temPermissao('ver_todas_postagens')
   // Quem pode adicionar novos registros no calendário.
   const podeCriar = isAdmin || temPermissao('criar_calendario_postagem')
+  // Libera editar/excluir qualquer lançamento, não só os próprios ou os que a pessoa criou.
+  const podeEditarTudo = isAdmin || temPermissao('editar_todas_postagens')
 
   const [mesAtual, setMesAtual] = useState(() => {
     const hoje = new Date()
@@ -40,7 +42,7 @@ export default function CalendarioPostagem() {
 
     let query = supabase
       .from('calendario_postagens')
-      .select('*, usuarios(nome_completo)')
+      .select('*, usuarios!calendario_postagens_usuario_id_fkey(nome_completo), criador:usuarios!calendario_postagens_criado_por_fkey(nome_completo)')
       .gte('data', inicio)
       .lte('data', fim)
       .order('created_at')
@@ -212,6 +214,7 @@ export default function CalendarioPostagem() {
           unidadeId={unidadeAtual?.id}
           isAdmin={isAdmin}
           podeCriar={podeCriar}
+          podeEditarTudo={podeEditarTudo}
           onClose={() => setDiaSelecionado(null)}
           onSalvou={carregar}
           onExcluir={(id) => setExcluirId(id)}
@@ -231,7 +234,7 @@ export default function CalendarioPostagem() {
   )
 }
 
-function DiaModal({ dia, entradas, usuario, usuarios, unidadeId, isAdmin, podeCriar, onClose, onSalvou, onExcluir, onRegistrado }) {
+function DiaModal({ dia, entradas, usuario, usuarios, unidadeId, isAdmin, podeCriar, podeEditarTudo, onClose, onSalvou, onExcluir, onRegistrado }) {
   const [aba, setAba] = useState('lista') // 'lista' | 'nova'
   const [tipo, setTipo] = useState(TIPOS[0])
   const [descricao, setDescricao] = useState('')
@@ -268,10 +271,12 @@ function DiaModal({ dia, entradas, usuario, usuarios, unidadeId, isAdmin, podeCr
     if (editandoId) {
       await supabase.from('calendario_postagens').update(payload).eq('id', editandoId)
     } else {
-      // Novo lançamento nasce vinculado à unidade ativa no momento.
+      // Novo lançamento nasce vinculado à unidade ativa no momento e guarda
+      // quem criou o registro (pode ser diferente do responsável escolhido),
+      // para que essa pessoa também consiga editar depois.
       const { data: novaEntrada } = await supabase
         .from('calendario_postagens')
-        .insert({ ...payload, unidade_id: unidadeId || null })
+        .insert({ ...payload, unidade_id: unidadeId || null, criado_por: usuario?.id || null })
         .select('id')
         .single()
       // Só espelha no quadro de tarefas quando é um registro novo, para não
@@ -284,8 +289,9 @@ function DiaModal({ dia, entradas, usuario, usuarios, unidadeId, isAdmin, podeCr
     setAba('lista')
   }
 
-  // Além do próprio dono do registro, quem tem acesso total (admin) também pode editar.
-  const podeEditar = (e) => isAdmin || e.usuario_id === usuario?.id
+  // Pode editar: o responsável pelo registro, quem o criou ("Adicionado por"),
+  // ou quem tem acesso total (admin / permissão "editar_todas_postagens").
+  const podeEditar = (e) => podeEditarTudo || e.usuario_id === usuario?.id || e.criado_por === usuario?.id
 
   return (
     <div className="fx-modal-scrim" onClick={onClose}>
@@ -407,6 +413,10 @@ function DetalheModal({ entrada, podeEditar, onClose, onEditar, onExcluir }) {
               <span className="fx-detalhe-label">Responsável</span>
               <p className="fx-detalhe-valor">{entrada.usuarios?.nome_completo || '—'}</p>
             </div>
+            <div className="fx-detalhe-item">
+              <span className="fx-detalhe-label">Adicionado por</span>
+              <p className="fx-detalhe-valor">{entrada.criador?.nome_completo || '—'}</p>
+            </div>
           </div>
         </div>
         {podeEditar && (
@@ -432,7 +442,8 @@ function TabelaEntradas({ entradas, podeEditar, onAbrir, onEditar, onExcluir }) 
             <button key={e.id} type="button" className="fx-lista-postagem-item" onClick={() => onAbrir(e)}>
               <span className={`fx-pill fx-pill--${e.tipo === 'FEED' ? 'ativo' : 'normal'}`}>{e.tipo}</span>
               <span className="fx-lista-postagem-desc" style={{ whiteSpace: 'pre-wrap' }}>{e.descricao}</span>
-              <span className="fx-lista-postagem-resp">{e.usuarios?.nome_completo || '—'}</span>
+              <span className="fx-lista-postagem-resp" title="Responsável">{e.usuarios?.nome_completo || '—'}</span>
+              <span className="fx-lista-postagem-resp fx-lista-postagem-criador" title="Adicionado por">{e.criador?.nome_completo || '—'}</span>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M9 6l6 6-6 6" /></svg>
             </button>
           ))}

@@ -81,6 +81,7 @@ export const PERMISSOES = [
   { key: 'calendario_postagem', label: 'Ver Calendário de Postagem', grupo: 'Calendário de Postagem' },
   { key: 'criar_calendario_postagem', label: 'Criar Registros no Calendário de Postagem', grupo: 'Calendário de Postagem' },
   { key: 'ver_todas_postagens', label: 'Ver Todas as Postagens (não só as próprias)', grupo: 'Calendário de Postagem' },
+  { key: 'editar_todas_postagens', label: 'Editar Todas as Postagens (não só as próprias ou as que criou)', grupo: 'Calendário de Postagem' },
 
   // Financeiro
   { key: 'ver_financeiro', label: 'Ver Financeiro', grupo: 'Financeiro' },
