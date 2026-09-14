@@ -2,6 +2,7 @@ import { Fragment, useEffect, useMemo, useState } from 'react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../context/AuthContext'
+import { gerarPdfRelatorio, gerarXlsxRelatorio } from '../../lib/exportRelatorio'
 import Layout from '../../components/Layout'
 import '../../styles/crud.css'
 import '../../styles/relatorios.css'
@@ -21,6 +22,12 @@ const CAMPOS_POR_CATEGORIA = {
     campoTresLabel: 'Publicidade',
     campoTresOpcoes: ['Blubash', 'Anúncio', 'Whatsapp', 'Instagram', 'Visita', 'Panfleto', 'Curso gratuito'],
   },
+}
+
+function formatarDataBR(dataStr) {
+  if (!dataStr) return '—'
+  const [ano, mes, dia] = dataStr.slice(0, 10).split('-')
+  return `${dia}/${mes}/${ano}`
 }
 
 export default function RelatorioCalendario() {
@@ -99,20 +106,49 @@ export default function RelatorioCalendario() {
       .map((l) => ({ nome: l.nome.split(' ')[0], Marketing: l.marketing, Comercial: l.comercial }))
   }, [linhas])
 
-  const exportarCSV = () => {
-    const cabecalho = ['Nome', 'Perfil', 'Lançamentos Marketing', 'Lançamentos Comercial', 'Total']
-    const linhasCSV = linhas.map((l) => [l.nome, l.perfil, l.marketing, l.comercial, l.total])
-    const csv = [cabecalho, ...linhasCSV]
-      .map((linha) => linha.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(';'))
-      .join('\n')
-    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `relatorio-calendario-${new Date().toISOString().slice(0, 10)}.csv`
-    link.click()
-    URL.revokeObjectURL(url)
+  const COLUNAS_EXPORT_RESUMO = [
+    { header: 'Nome', key: 'nome' },
+    { header: 'Perfil', key: 'perfil' },
+    { header: 'Lançamentos Marketing', key: 'marketing' },
+    { header: 'Lançamentos Comercial', key: 'comercial' },
+    { header: 'Total', key: 'total' },
+  ]
+
+  const periodoDescricao = () => {
+    if (!dataInicio && !dataFim) return 'Todo o período'
+    return `Período: ${dataInicio ? formatarDataBR(dataInicio) : 'início'} até ${dataFim ? formatarDataBR(dataFim) : 'hoje'}`
   }
+
+  const exportarResumoXlsx = () => {
+    gerarXlsxRelatorio({
+      titulo: 'Relatório do Calendário — Resumo',
+      subtitulo: periodoDescricao(),
+      colunas: COLUNAS_EXPORT_RESUMO,
+      linhas,
+      linhaTotal: { nome: 'Total', perfil: '', marketing: resumo.totalMarketing, comercial: resumo.totalComercial, total: resumo.total },
+      nomeArquivo: `relatorio-calendario-${new Date().toISOString().slice(0, 10)}.xlsx`,
+      nomeAba: 'Resumo',
+    })
+  }
+
+  const exportarResumoPdf = () => {
+    gerarPdfRelatorio({
+      titulo: 'Relatório do Calendário — Resumo',
+      subtitulo: periodoDescricao(),
+      resumo: [
+        { label: 'Total de lançamentos', value: resumo.total },
+        { label: 'Marketing', value: resumo.totalMarketing },
+        { label: 'Comercial', value: resumo.totalComercial },
+        { label: 'Pessoas com lançamentos', value: resumo.pessoasAtivas },
+      ],
+      colunas: COLUNAS_EXPORT_RESUMO,
+      linhas,
+      linhaTotal: { nome: 'Total', perfil: '', marketing: resumo.totalMarketing, comercial: resumo.totalComercial, total: resumo.total },
+      nomeArquivo: `relatorio-calendario-${new Date().toISOString().slice(0, 10)}.pdf`,
+      orientacao: 'portrait',
+    })
+  }
+
 
   const detalheDaPessoa = (usuarioId) => {
     const doUsuario = entradasFiltradas.filter((e) => e.usuario_id === usuarioId)
@@ -139,35 +175,57 @@ export default function RelatorioCalendario() {
     return { colunas, entradasOrdenadas }
   }
 
-  const exportarDetalhadoCSV = () => {
-    const cabecalho = ['Pessoa', 'Perfil', 'Data', 'Categoria', 'Assunto', 'Coluna 2', 'Valor coluna 2', 'Coluna 3', 'Valor coluna 3']
-    const linhasCSV = linhas.flatMap((l) => {
+  const linhasDetalhado = () => {
+    return linhas.flatMap((l) => {
       const { entradasOrdenadas } = detalheDaPessoa(l.id)
       return entradasOrdenadas.map((e) => {
         const config = CAMPOS_POR_CATEGORIA[e.categoria] || {}
-        return [
-          l.nome,
-          l.perfil,
-          e.data,
-          e.categoria,
-          e.assunto,
-          config.campoDoisLabel || '',
-          e.campo_dois || '',
-          config.campoTresLabel || '',
-          e.campo_tres || '',
-        ]
+        return {
+          pessoa: l.nome,
+          perfil: l.perfil,
+          data: formatarDataBR(e.data),
+          categoria: e.categoria,
+          assunto: e.assunto,
+          colunaDoisLabel: config.campoDoisLabel || '',
+          colunaDoisValor: e.campo_dois || '',
+          colunaTresLabel: config.campoTresLabel || '',
+          colunaTresValor: e.campo_tres || '',
+        }
       })
     })
-    const csv = [cabecalho, ...linhasCSV]
-      .map((linha) => linha.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(';'))
-      .join('\n')
-    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `relatorio-calendario-detalhado-${new Date().toISOString().slice(0, 10)}.csv`
-    link.click()
-    URL.revokeObjectURL(url)
+  }
+
+  const COLUNAS_EXPORT_DETALHADO = [
+    { header: 'Pessoa', key: 'pessoa' },
+    { header: 'Perfil', key: 'perfil' },
+    { header: 'Data', key: 'data' },
+    { header: 'Categoria', key: 'categoria' },
+    { header: 'Assunto', key: 'assunto' },
+    { header: 'Coluna 2', key: 'colunaDoisLabel' },
+    { header: 'Valor coluna 2', key: 'colunaDoisValor' },
+    { header: 'Coluna 3', key: 'colunaTresLabel' },
+    { header: 'Valor coluna 3', key: 'colunaTresValor' },
+  ]
+
+  const exportarDetalhadoXlsx = () => {
+    gerarXlsxRelatorio({
+      titulo: 'Relat\u00F3rio do Calend\u00E1rio \u2014 Detalhado',
+      subtitulo: periodoDescricao(),
+      colunas: COLUNAS_EXPORT_DETALHADO,
+      linhas: linhasDetalhado(),
+      nomeArquivo: `relatorio-calendario-detalhado-${new Date().toISOString().slice(0, 10)}.xlsx`,
+      nomeAba: 'Detalhado',
+    })
+  }
+
+  const exportarDetalhadoPdf = () => {
+    gerarPdfRelatorio({
+      titulo: 'Relat\u00F3rio do Calend\u00E1rio \u2014 Detalhado',
+      subtitulo: periodoDescricao(),
+      colunas: COLUNAS_EXPORT_DETALHADO,
+      linhas: linhasDetalhado(),
+      nomeArquivo: `relatorio-calendario-detalhado-${new Date().toISOString().slice(0, 10)}.pdf`,
+    })
   }
 
   const limparFiltros = () => {
@@ -186,17 +244,29 @@ export default function RelatorioCalendario() {
         </div>
         {podeExportar && (
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            <button className="fx-btn fx-btn-secondary" onClick={exportarCSV} disabled={loading || linhas.length === 0}>
+            <button className="fx-btn fx-btn-secondary" onClick={exportarResumoXlsx} disabled={loading || linhas.length === 0}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M12 3v12m0 0l-4-4m4 4l4-4M4 21h16" />
               </svg>
-              Exportar resumo
+              Resumo (Excel)
             </button>
-            <button className="fx-btn fx-btn-secondary" onClick={exportarDetalhadoCSV} disabled={loading || linhas.length === 0}>
+            <button className="fx-btn fx-btn-secondary" onClick={exportarResumoPdf} disabled={loading || linhas.length === 0}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M12 3v12m0 0l-4-4m4 4l4-4M4 21h16" />
               </svg>
-              Exportar detalhado
+              Resumo (PDF)
+            </button>
+            <button className="fx-btn fx-btn-secondary" onClick={exportarDetalhadoXlsx} disabled={loading || linhas.length === 0}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 3v12m0 0l-4-4m4 4l4-4M4 21h16" />
+              </svg>
+              Detalhado (Excel)
+            </button>
+            <button className="fx-btn fx-btn-secondary" onClick={exportarDetalhadoPdf} disabled={loading || linhas.length === 0}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 3v12m0 0l-4-4m4 4l4-4M4 21h16" />
+              </svg>
+              Detalhado (PDF)
             </button>
           </div>
         )}

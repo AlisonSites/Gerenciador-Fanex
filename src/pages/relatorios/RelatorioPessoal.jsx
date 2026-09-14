@@ -1,7 +1,9 @@
-import { useEffect, useMemo, useState } from 'react'
+import { Fragment, useEffect, useMemo, useState } from 'react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../context/AuthContext'
+import { gerarPdfRelatorio, gerarXlsxRelatorio } from '../../lib/exportRelatorio'
+import { PRIORIDADE_CLASSE } from '../Tarefas'
 import Layout from '../../components/Layout'
 import '../../styles/crud.css'
 import '../../styles/relatorios.css'
@@ -11,6 +13,22 @@ function isConcluido(nome) {
 }
 function isAndamento(nome) {
   return /andamento/i.test(nome || '')
+}
+
+// Campo de data usado para filtrar o período do relatório: cada um responde
+// uma pergunta diferente ("o que foi concluído em agosto" x "o que vencia em
+// agosto" x "o que foi criado em agosto"), então deixamos a pessoa escolher
+// em vez de esconder isso atrás de um único filtro de "data".
+const CAMPOS_DATA_FILTRO = [
+  { valor: 'concluida_em', label: 'Data de conclusão' },
+  { valor: 'data_vencimento', label: 'Data de vencimento' },
+  { valor: 'created_at', label: 'Data de criação' },
+]
+
+function formatarDataBR(dataStr) {
+  if (!dataStr) return '—'
+  const [ano, mes, dia] = dataStr.slice(0, 10).split('-')
+  return `${dia}/${mes}/${ano}`
 }
 
 export default function RelatorioPessoal() {
@@ -26,10 +44,12 @@ export default function RelatorioPessoal() {
 
   const [busca, setBusca] = useState('')
   const [filtroGrupo, setFiltroGrupo] = useState('')
+  const [campoData, setCampoData] = useState('concluida_em')
   const [dataInicio, setDataInicio] = useState('')
   const [dataFim, setDataFim] = useState('')
   const [ordenarPor, setOrdenarPor] = useState('total')
   const [ordemDesc, setOrdemDesc] = useState(true)
+  const [pessoaExpandidaId, setPessoaExpandidaId] = useState(null)
 
   useEffect(() => {
     async function carregar() {
@@ -56,14 +76,21 @@ export default function RelatorioPessoal() {
     carregar()
   }, [unidadeAtual])
 
+  // Antes, o filtro de período comparava sempre com `created_at` (data em
+  // que a tarefa foi criada) — então filtrar "Agosto" não trazia o que foi
+  // de fato concluído em agosto, e sim o que tinha sido criado naquele mês.
+  // Agora o campo usado na comparação é escolhido em `campoData`.
   const tarefasFiltradas = useMemo(() => {
     return tarefas.filter((t) => {
       if (filtroGrupo && t.grupo_id !== filtroGrupo) return false
-      if (dataInicio && t.created_at && t.created_at < dataInicio) return false
-      if (dataFim && t.created_at && t.created_at > `${dataFim}T23:59:59`) return false
+      if (!dataInicio && !dataFim) return true
+      const valorData = t[campoData] ? t[campoData].slice(0, 10) : null
+      if (!valorData) return false
+      if (dataInicio && valorData < dataInicio) return false
+      if (dataFim && valorData > dataFim) return false
       return true
     })
-  }, [tarefas, filtroGrupo, dataInicio, dataFim])
+  }, [tarefas, filtroGrupo, campoData, dataInicio, dataFim])
 
   const linhas = useMemo(() => {
     const hoje = new Date().toISOString().slice(0, 10)
@@ -141,20 +168,77 @@ export default function RelatorioPessoal() {
       }))
   }, [linhas])
 
-  const exportarCSV = () => {
-    const cabecalho = ['Nome', 'Cargo', 'Perfil', 'Status', 'Total', 'Pendentes', 'Em andamento', 'Concluídas', 'Atrasadas', 'Taxa de conclusão (%)']
-    const linhasCSV = linhasOrdenadas.map((l) => [l.nome, l.cargo, l.perfil, l.status, l.total, l.pendentes, l.andamento, l.concluidas, l.atrasadas, l.taxaConclusao])
-    const csv = [cabecalho, ...linhasCSV]
-      .map((linha) => linha.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(';'))
-      .join('\n')
-    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `relatorio-pessoal-${new Date().toISOString().slice(0, 10)}.csv`
-    link.click()
-    URL.revokeObjectURL(url)
+  // Detalhamento: a lista real de tarefas por trás dos números da pessoa,
+  // respeitando os filtros de grupo/período ativos no relatório.
+  const tarefasDaPessoa = (usuarioId) => {
+    return tarefasFiltradas
+      .filter((t) => t.usuario_id === usuarioId)
+      .map((t) => ({
+        ...t,
+        statusNome: statusList.find((s) => s.id === t.status_id)?.nome || '—',
+        grupoNome: grupos.find((g) => g.id === t.grupo_id)?.nome || '—',
+      }))
+      .sort((a, b) => (b.concluida_em || b.data_vencimento || b.created_at || '').localeCompare(a.concluida_em || a.data_vencimento || a.created_at || ''))
   }
+
+  const periodoDescricao = () => {
+    if (!dataInicio && !dataFim) return 'Todo o período'
+    const campoLabel = CAMPOS_DATA_FILTRO.find((c) => c.valor === campoData)?.label || 'Data'
+    return `${campoLabel}: ${dataInicio ? formatarDataBR(dataInicio) : 'início'} até ${dataFim ? formatarDataBR(dataFim) : 'hoje'}`
+  }
+
+  const COLUNAS_EXPORT = [
+    { header: 'Colaborador', key: 'nome' },
+    { header: 'Cargo', key: 'cargo' },
+    { header: 'Perfil', key: 'perfil' },
+    { header: 'Status', key: 'status' },
+    { header: 'Total', key: 'total' },
+    { header: 'Pendentes', key: 'pendentes' },
+    { header: 'Em andamento', key: 'andamento' },
+    { header: 'Concluídas', key: 'concluidas' },
+    { header: 'Atrasadas', key: 'atrasadas' },
+    { header: 'Conclusão (%)', key: 'taxaConclusao' },
+  ]
+
+  const linhaTotalExport = {
+    nome: 'Total', cargo: '', perfil: '', status: '',
+    total: resumo.totalTarefas,
+    pendentes: linhasOrdenadas.reduce((acc, l) => acc + l.pendentes, 0),
+    andamento: linhasOrdenadas.reduce((acc, l) => acc + l.andamento, 0),
+    concluidas: linhasOrdenadas.reduce((acc, l) => acc + l.concluidas, 0),
+    atrasadas: resumo.totalAtrasadas,
+    taxaConclusao: resumo.taxaMedia,
+  }
+
+  const exportarXlsx = () => {
+    gerarXlsxRelatorio({
+      titulo: 'Relatório por Pessoa',
+      subtitulo: periodoDescricao(),
+      colunas: COLUNAS_EXPORT,
+      linhas: linhasOrdenadas,
+      linhaTotal: linhaTotalExport,
+      nomeArquivo: `relatorio-pessoal-${new Date().toISOString().slice(0, 10)}.xlsx`,
+      nomeAba: 'Relatório por Pessoa',
+    })
+  }
+
+  const exportarPdf = () => {
+    gerarPdfRelatorio({
+      titulo: 'Relatório por Pessoa',
+      subtitulo: periodoDescricao(),
+      resumo: [
+        { label: 'Colaboradores ativos', value: resumo.colaboradoresAtivos },
+        { label: 'Tarefas no período', value: resumo.totalTarefas },
+        { label: 'Taxa média de conclusão', value: `${resumo.taxaMedia}%` },
+        { label: 'Tarefas atrasadas', value: resumo.totalAtrasadas },
+      ],
+      colunas: COLUNAS_EXPORT,
+      linhas: linhasOrdenadas,
+      linhaTotal: linhaTotalExport,
+      nomeArquivo: `relatorio-pessoal-${new Date().toISOString().slice(0, 10)}.pdf`,
+    })
+  }
+
 
   const limparFiltros = () => {
     setBusca('')
@@ -176,12 +260,20 @@ export default function RelatorioPessoal() {
           <p>Acompanhe a produtividade individual de cada colaborador e identifique gargalos.</p>
         </div>
         {podeExportar && (
-          <button className="fx-btn fx-btn-secondary" onClick={exportarCSV} disabled={loading || linhas.length === 0}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 3v12m0 0l-4-4m4 4l4-4M4 21h16" />
-            </svg>
-            Exportar CSV
-          </button>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            <button className="fx-btn fx-btn-secondary" onClick={exportarXlsx} disabled={loading || linhas.length === 0}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 3v12m0 0l-4-4m4 4l4-4M4 21h16" />
+              </svg>
+              Exportar Excel
+            </button>
+            <button className="fx-btn fx-btn-secondary" onClick={exportarPdf} disabled={loading || linhas.length === 0}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 3v12m0 0l-4-4m4 4l4-4M4 21h16" />
+              </svg>
+              Exportar PDF
+            </button>
+          </div>
         )}
       </div>
 
@@ -217,6 +309,9 @@ export default function RelatorioPessoal() {
               <select className="fx-select" value={filtroGrupo} onChange={(e) => setFiltroGrupo(e.target.value)}>
                 <option value="">Todos os grupos</option>
                 {grupos.map((g) => <option key={g.id} value={g.id}>{g.nome}</option>)}
+              </select>
+              <select className="fx-select" value={campoData} onChange={(e) => setCampoData(e.target.value)} title="Qual data usar para filtrar o período">
+                {CAMPOS_DATA_FILTRO.map((c) => <option key={c.valor} value={c.valor}>{c.label}</option>)}
               </select>
               <label className="fx-relatorio-data">
                 <span>De</span>
@@ -257,6 +352,7 @@ export default function RelatorioPessoal() {
               <table className="fx-table">
                 <thead>
                   <tr>
+                    <th style={{ width: 24 }}></th>
                     <th className="fx-th-sort" onClick={() => alternarOrdenacao('nome')}>Colaborador <SetaOrdenacao campo="nome" /></th>
                     <th>Cargo</th>
                     <th className="fx-th-sort" onClick={() => alternarOrdenacao('total')}>Total <SetaOrdenacao campo="total" /></th>
@@ -268,40 +364,57 @@ export default function RelatorioPessoal() {
                   </tr>
                 </thead>
                 <tbody>
-                  {linhasOrdenadas.map((l) => (
-                    <tr key={l.id}>
-                      <td>
-                        <div className="fx-relatorio-nome">
-                          <div className="fx-avatar" style={{ width: 30, height: 30, fontSize: 11 }}>
-                            {l.nome.split(' ').slice(0, 2).map((s) => s[0]?.toUpperCase()).join('')}
-                          </div>
-                          <div>
-                            <strong>{l.nome}</strong>
-                            <small className={`fx-pill fx-pill--${l.status === 'Ativo' ? 'ativo' : 'inativo'}`} style={{ marginTop: 2 }}>{l.status}</small>
-                          </div>
-                        </div>
-                      </td>
-                      <td>{l.cargo}</td>
-                      <td className="fx-mono">{l.total}</td>
-                      <td className="fx-mono">{l.pendentes}</td>
-                      <td className="fx-mono">{l.andamento}</td>
-                      <td className="fx-mono">{l.concluidas}</td>
-                      <td className="fx-mono">
-                        {l.atrasadas > 0 ? <span className="fx-pill fx-pill--urgente">{l.atrasadas}</span> : '0'}
-                      </td>
-                      <td style={{ minWidth: 140 }}>
-                        <div className="fx-progress-row">
-                          <div className="fx-progress-track">
-                            <div
-                              className="fx-progress-fill"
-                              style={{ width: `${l.taxaConclusao}%`, background: l.taxaConclusao >= 70 ? 'var(--fx-baixa)' : l.taxaConclusao >= 40 ? 'var(--fx-orange)' : 'var(--fx-urgente)' }}
-                            />
-                          </div>
-                          <span className="fx-mono">{l.taxaConclusao}%</span>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                  {linhasOrdenadas.map((l) => {
+                    const expandida = pessoaExpandidaId === l.id
+                    return (
+                      <Fragment key={l.id}>
+                        <tr className="fx-relatorio-linha-clicavel" onClick={() => setPessoaExpandidaId(expandida ? null : l.id)}>
+                          <td>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ transform: expandida ? 'rotate(90deg)' : 'none', transition: 'transform 0.12s ease', color: 'var(--fx-muted)' }}>
+                              <path d="M9 6l6 6-6 6" />
+                            </svg>
+                          </td>
+                          <td>
+                            <div className="fx-relatorio-nome">
+                              <div className="fx-avatar" style={{ width: 30, height: 30, fontSize: 11 }}>
+                                {l.nome.split(' ').slice(0, 2).map((s) => s[0]?.toUpperCase()).join('')}
+                              </div>
+                              <div>
+                                <strong>{l.nome}</strong>
+                                <small className={`fx-pill fx-pill--${l.status === 'Ativo' ? 'ativo' : 'inativo'}`} style={{ marginTop: 2 }}>{l.status}</small>
+                              </div>
+                            </div>
+                          </td>
+                          <td>{l.cargo}</td>
+                          <td className="fx-mono">{l.total}</td>
+                          <td className="fx-mono">{l.pendentes}</td>
+                          <td className="fx-mono">{l.andamento}</td>
+                          <td className="fx-mono">{l.concluidas}</td>
+                          <td className="fx-mono">
+                            {l.atrasadas > 0 ? <span className="fx-pill fx-pill--urgente">{l.atrasadas}</span> : '0'}
+                          </td>
+                          <td style={{ minWidth: 140 }}>
+                            <div className="fx-progress-row">
+                              <div className="fx-progress-track">
+                                <div
+                                  className="fx-progress-fill"
+                                  style={{ width: `${l.taxaConclusao}%`, background: l.taxaConclusao >= 70 ? 'var(--fx-baixa)' : l.taxaConclusao >= 40 ? 'var(--fx-orange)' : 'var(--fx-urgente)' }}
+                                />
+                              </div>
+                              <span className="fx-mono">{l.taxaConclusao}%</span>
+                            </div>
+                          </td>
+                        </tr>
+                        {expandida && (
+                          <tr>
+                            <td colSpan={8} style={{ padding: 0, background: 'var(--fx-bg)' }}>
+                              <TarefasDaPessoa tarefas={tarefasDaPessoa(l.id)} />
+                            </td>
+                          </tr>
+                        )}
+                      </Fragment>
+                    )
+                  })}
                 </tbody>
               </table>
               {linhasOrdenadas.length === 0 && (
@@ -312,5 +425,41 @@ export default function RelatorioPessoal() {
         </>
       )}
     </Layout>
+  )
+}
+
+// Lista real de tarefas por trás dos números de uma pessoa (drill-down),
+// respeitando os filtros ativos no relatório.
+function TarefasDaPessoa({ tarefas }) {
+  if (tarefas.length === 0) {
+    return <div className="fx-relatorio-detalhe"><div className="fx-empty" style={{ margin: 0 }}><strong>Nenhuma tarefa</strong>Nenhuma tarefa desta pessoa no período/filtro selecionado.</div></div>
+  }
+  return (
+    <div className="fx-relatorio-detalhe">
+      <table className="fx-table fx-table-sm">
+        <thead>
+          <tr>
+            <th>Tarefa</th>
+            <th>Grupo</th>
+            <th>Status</th>
+            <th>Prioridade</th>
+            <th>Vencimento</th>
+            <th>Concluída em</th>
+          </tr>
+        </thead>
+        <tbody>
+          {tarefas.map((t) => (
+            <tr key={t.id}>
+              <td><strong>{t.titulo}</strong></td>
+              <td>{t.grupoNome}</td>
+              <td>{t.statusNome}</td>
+              <td><span className={`fx-pill fx-pill--${PRIORIDADE_CLASSE[t.prioridade] || 'normal'}`}>{t.prioridade}</span></td>
+              <td className="fx-mono">{formatarDataBR(t.data_vencimento)}</td>
+              <td className="fx-mono">{t.concluida_em ? new Date(t.concluida_em).toLocaleDateString('pt-BR') : '—'}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   )
 }
