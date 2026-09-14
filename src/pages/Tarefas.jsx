@@ -9,8 +9,8 @@ import Layout from '../components/Layout'
 import ConfirmModal from '../components/ConfirmModal'
 import '../styles/kanban.css'
 
-const PRIORIDADES = ['Baixa', 'Normal', 'Alta', 'Urgente']
-const PRIORIDADE_CLASSE = { Baixa: 'baixa', Normal: 'normal', Alta: 'alta', Urgente: 'urgente' }
+export const PRIORIDADES = ['Baixa', 'Normal', 'Alta', 'Urgente']
+export const PRIORIDADE_CLASSE = { Baixa: 'baixa', Normal: 'normal', Alta: 'alta', Urgente: 'urgente' }
 
 // Formata uma data "pura" (ex.: "2026-08-12", vinda de um <input type="date">
 // ou de uma coluna DATE do banco) direto a partir da string, sem passar por
@@ -109,7 +109,7 @@ function SeletorDeGrupos({ podeGerenciarTudo, usuario, unidadeAtual, onAbrirGrup
       let mapaTarefas = {}
       let mapaMembros = {}
       if (idsGrupos.length) {
-        const { data: tarefasData } = await supabase.from('tarefas').select('grupo_id').in('grupo_id', idsGrupos)
+        const { data: tarefasData } = await supabase.from('tarefas').select('grupo_id').eq('arquivada', false).in('grupo_id', idsGrupos)
           ; (tarefasData || []).forEach((t) => {
             mapaTarefas[t.grupo_id] = (mapaTarefas[t.grupo_id] || 0) + 1
           })
@@ -226,6 +226,7 @@ function QuadroDoGrupo({ grupoId, podeGerenciarTudo, podeVerTudo, podeExcluirTar
       .from('tarefas')
       .select('*, usuarios(nome_completo)')
       .eq('grupo_id', grupoId)
+      .eq('arquivada', false)
       .order('created_at', { ascending: false })
 
     // Sem a permissão de ver tudo, o quadro só mostra as tarefas em que
@@ -809,7 +810,7 @@ function EditarTarefaModal({ tarefa, statusList, usuarios, podeGerenciarTudo, po
 // ==========================================================
 // Comentários e Anexos (dentro do modal de edição de tarefa)
 // ==========================================================
-function ComentariosSecao({ tarefaId, usuarioAtual, podeComentar }) {
+export function ComentariosSecao({ tarefaId, usuarioAtual, podeComentar }) {
   const [comentarios, setComentarios] = useState([])
   const [texto, setTexto] = useState('')
   const [carregando, setCarregando] = useState(true)
@@ -889,7 +890,7 @@ function ComentariosSecao({ tarefaId, usuarioAtual, podeComentar }) {
   )
 }
 
-function AnexosSecao({ tarefaId, usuarioAtual, podeAnexar }) {
+export function AnexosSecao({ tarefaId, usuarioAtual, podeAnexar }) {
   const [anexos, setAnexos] = useState([])
   const [carregando, setCarregando] = useState(true)
   const [enviando, setEnviando] = useState(false)

@@ -5,6 +5,7 @@ import ProtectedRoute from './components/ProtectedRoute'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Tarefas from './pages/Tarefas'
+import ArquivoTarefas from './pages/ArquivoTarefas'
 import CriarUsuario from './pages/usuarios/CriarUsuario'
 import GerenciarUsuarios from './pages/usuarios/GerenciarUsuarios'
 import CriarPerfil from './pages/perfis/CriarPerfil'
@@ -29,6 +30,7 @@ export default function App() {
 
           <Route path="/dashboard" element={<ProtectedRoute permissao="dashboard"><Dashboard /></ProtectedRoute>} />
           <Route path="/tarefas" element={<ProtectedRoute permissao={['ver_tarefas', 'criar_tarefas', 'gerenciar_tarefas']}><Tarefas /></ProtectedRoute>} />
+          <Route path="/arquivo" element={<ProtectedRoute permissao="ver_arquivo_tarefas"><ArquivoTarefas /></ProtectedRoute>} />
 
           <Route path="/usuarios/criar" element={<ProtectedRoute permissao="criar_usuarios"><CriarUsuario /></ProtectedRoute>} />
           <Route path="/usuarios/gerenciar" element={<ProtectedRoute permissao={['ver_usuarios', 'gerenciar_usuarios']}><GerenciarUsuarios /></ProtectedRoute>} />

@@ -1,9 +1,16 @@
 import { createContext, useContext, useEffect, useState, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
+import { registrarErro } from '../lib/logs'
 
 const AuthContext = createContext(null)
 
 const CHAVE_UNIDADE_ATUAL = 'fanex.unidadeAtualId'
+
+// Dispara no máximo uma vez por sessão do navegador (não a cada troca de
+// aba/refresh de token). A função em si é idempotente e barata quando não
+// há nada pra arquivar, então chamar de novo não corrompe nada — isso é só
+// pra não gerar uma chamada extra a cada evento de auth.
+let arquivamentoMensalDisparado = false
 
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(null)
@@ -75,6 +82,28 @@ export function AuthProvider({ children }) {
       .maybeSingle()
 
     setUsuario(usuarioRow || null)
+
+    // Arquivamento automático das tarefas concluídas em meses anteriores:
+    // "dispara sozinho" assim que alguém abre o sistema depois da virada do
+    // mês, sem precisar de nenhum agendamento configurado no Supabase.
+    if (usuarioRow && !arquivamentoMensalDisparado) {
+      arquivamentoMensalDisparado = true
+      supabase.rpc('arquivar_tarefas_concluidas').then(({ error }) => {
+        if (error) {
+          // Não deixa passar em silêncio: se a function ainda não existir no
+          // banco (migration 010 não rodada) ou falhar por outro motivo,
+          // fica registrado em "Log de Erros" pra dar pra investigar.
+          registrarErro({
+            origem: 'arquivamento_automatico_tarefas',
+            mensagem: error.message || 'Falha ao chamar arquivar_tarefas_concluidas()',
+            detalhes: { code: error.code, hint: error.hint, details: error.details },
+          })
+          // Permite tentar de novo no próximo login desta sessão, já que
+          // esta tentativa não teve sucesso.
+          arquivamentoMensalDisparado = false
+        }
+      })
+    }
 
     let perfilRow = null
     if (usuarioRow?.perfil_id) {

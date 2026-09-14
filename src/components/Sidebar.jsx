@@ -5,6 +5,7 @@ import Logo from '../assets/logo-branco.png'
 const NAV = [
   { to: '/dashboard', label: 'Dashboard', perm: 'dashboard', icon: 'grid' },
   { to: '/tarefas', label: 'Quadro de Tarefas', perm: ['ver_tarefas', 'criar_tarefas', 'gerenciar_tarefas'], icon: 'board' },
+  { to: '/arquivo', label: 'Arquivo de Tarefas', perm: 'ver_arquivo_tarefas', icon: 'archive' },
   { to: '/calendario/marketing', label: 'Calendário de Marketing', perm: 'calendario_marketing', icon: 'calendar' },
   { to: '/calendario/postagem', label: 'Calendário de Postagem', perm: 'calendario_postagem', icon: 'calendar-chart' },
   { section: 'Pessoas' },
@@ -29,6 +30,7 @@ const NAV = [
 const ICONS = {
   grid: <path d="M4 4h6v6H4V4zm10 0h6v6h-6V4zM4 14h6v6H4v-6zm10 0h6v6h-6v-6z" />,
   board: <path d="M4 4h16v16H4V4zm4 3v10m4-10v10m4-10v10" />,
+  archive: <path d="M3 4h18v4H3V4zm1 4h16v12H4V8zm5 3h6" />,
   'user-plus': <path d="M9 11a4 4 0 100-8 4 4 0 000 8zM2 21a7 7 0 0114 0M18 8v6m3-3h-6" />,
   users: <path d="M9 11a4 4 0 100-8 4 4 0 000 8zM2 21a7 7 0 0114 0M17 8a4 4 0 010 7.75M23 21a6.5 6.5 0 00-5-6.32" />,
   'folder-plus': <path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V7zM12 12v4m-2-2h4" />,

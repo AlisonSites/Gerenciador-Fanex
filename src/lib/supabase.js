@@ -36,6 +36,14 @@ export const PERMISSOES = [
   { key: 'anexar_arquivos_tarefas', label: 'Anexar Arquivos em Tarefas', grupo: 'Tarefas' },
   { key: 'ver_tarefas_atrasadas_todos', label: 'Ver Tarefas Atrasadas de Todos', grupo: 'Tarefas' },
 
+  // Arquivo de Tarefas
+  { key: 'ver_arquivo_tarefas', label: 'Ver Tarefas Arquivadas (apenas as próprias)', grupo: 'Arquivo de Tarefas' },
+  { key: 'ver_todos_arquivos_tarefas', label: 'Ver Tarefas Arquivadas de Todos os Usuários (não só as próprias)', grupo: 'Arquivo de Tarefas' },
+  { key: 'editar_arquivo_tarefas', label: 'Editar Tarefas Arquivadas', grupo: 'Arquivo de Tarefas' },
+  { key: 'excluir_arquivo_tarefas', label: 'Excluir Tarefas Arquivadas', grupo: 'Arquivo de Tarefas' },
+  { key: 'comentar_arquivo_tarefas', label: 'Comentar em Tarefas Arquivadas', grupo: 'Arquivo de Tarefas' },
+  { key: 'anexar_arquivo_tarefas', label: 'Anexar Arquivos em Tarefas Arquivadas', grupo: 'Arquivo de Tarefas' },
+
   // Usuários
   { key: 'ver_usuarios', label: 'Ver Usuários (somente leitura)', grupo: 'Usuários' },
   { key: 'criar_usuarios', label: 'Criar Usuários', grupo: 'Usuários' },
@@ -87,6 +95,7 @@ export const PERMISSOES = [
 export const ORDEM_GRUPOS_PERMISSOES = [
   'Geral',
   'Tarefas',
+  'Arquivo de Tarefas',
   'Calendário de Marketing',
   'Calendário de Postagem',
   'Usuários',
