@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { supabase } from '../../lib/supabase'
+import { supabase, supabaseCadastro } from '../../lib/supabase'
 import { excluirUsuarioCompleto } from '../../lib/usuarios'
 import { listarUnidadesAtivas, listarUnidadesDoUsuario, definirUnidadesDoUsuario } from '../../lib/unidades'
 import { registrarAuditoria } from '../../lib/auditoria'
@@ -67,22 +67,12 @@ export default function CriarUsuario() {
       } else {
         let userId = null
         if (form.email && form.senha) {
-          // Guarda a sessão do admin: signUp() troca a sessão ativa do navegador
-          // para o usuário recém-criado, o que "deslogaria" quem está cadastrando.
-          const { data: { session: sessaoAdmin } } = await supabase.auth.getSession()
-
-          const { data: authData, error: authError } = await supabase.auth.signUp({
+          // Usa o cliente isolado: o signUp não mexe na sessão de quem está
+          // cadastrando (ver comentário em lib/supabase.js).
+          const { data: authData, error: authError } = await supabaseCadastro.auth.signUp({
             email: form.email,
             password: form.senha,
           })
-
-          // Restaura a sessão de quem está logado (admin/coordenador) imediatamente.
-          if (sessaoAdmin) {
-            await supabase.auth.setSession({
-              access_token: sessaoAdmin.access_token,
-              refresh_token: sessaoAdmin.refresh_token,
-            })
-          }
 
           if (authError) {
             if (/already registered|already exists/i.test(authError.message)) {
@@ -90,7 +80,17 @@ export default function CriarUsuario() {
             }
             throw authError
           }
+          // Com a proteção contra enumeração de e-mails do Supabase, um e-mail
+          // já cadastrado não retorna erro: vem um usuário "falso" sem
+          // identities, cujo id não existe em auth.users.
+          if (authData.user && (authData.user.identities?.length ?? 0) === 0) {
+            throw new Error('Já existe uma conta com este e-mail.')
+          }
           userId = authData.user?.id || null
+          // Não deixa nenhuma sessão do usuário novo guardada em memória.
+          if (authData.session) await supabaseCadastro.auth.signOut({ scope: 'local' })
+        } else if (form.email || form.senha) {
+          throw new Error('Para criar o acesso, preencha e-mail e senha (ou deixe os dois em branco).')
         }
         const { data: novoUsuario, error } = await supabase.from('usuarios').insert({
           user_id: userId,

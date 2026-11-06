@@ -5,6 +5,22 @@ const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
 
 export const supabase = createClient(supabaseUrl, supabaseKey)
 
+// Cliente isolado usado APENAS para cadastrar contas de acesso novas
+// (auth.signUp). Ele não salva sessão nem renova token e usa outra
+// storageKey, então o signUp nunca troca a sessão de quem está logado.
+// Sem isso, o signUp no cliente principal dispara SIGNED_IN com o usuário
+// novo: o AuthContext recarrega o perfil (vazio), a tela de cadastro é
+// desmontada e o setSession() de restauração pode travar no lock interno
+// do supabase-js — e o cadastro em `usuarios` nunca acontece.
+export const supabaseCadastro = createClient(supabaseUrl, supabaseKey, {
+  auth: {
+    persistSession: false,
+    autoRefreshToken: false,
+    detectSessionInUrl: false,
+    storageKey: 'fanex-cadastro-auth',
+  },
+})
+
 // Nomes de todas as permissões possíveis, usadas nos módulos de Perfil de Acesso.
 // Cada permissão pertence a um "grupo" (módulo do sistema), usado apenas para
 // organizar a visualização na tela de Perfis de Acesso quando quem está
